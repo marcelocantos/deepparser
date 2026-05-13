@@ -450,6 +450,28 @@ sqldeep_singular(A) ::= SLASH INTEGER(N).       {
   A = (N.n == 1 && N.z && N.z[0] == '1') ? 1 : 0;
 }
 
+// sqldeep FROM-first variant: "FROM tbl SELECT { ... }" reorders FROM
+// before SELECT. Equivalent semantics to "SELECT { ... } FROM tbl";
+// the renderer can emit either form based on sqldeep_from_first.
+oneselect(A) ::= FROM seltablist(X) SELECT sqldeep_singular(S) distinct(D) selcollist(W)
+                 where_opt(Y) groupby_opt(P) having_opt(Q)
+                 orderby_opt(Z) limit_opt(L). {
+  A = lp_make_select(ctx, D, W, X, Y, P, Q, Z, L);
+  if (A) {
+    A->u.select.sqldeep_singular = S;
+    A->u.select.sqldeep_from_first = 1;
+  }
+}
+oneselect(A) ::= FROM seltablist(X) SELECT sqldeep_singular(S) distinct(D) selcollist(W)
+                 where_opt(Y) groupby_opt(P) having_opt(Q) window_clause(R)
+                 orderby_opt(Z) limit_opt(L). {
+  A = lp_make_select_with_window(ctx, D, W, X, Y, P, Q, R, Z, L);
+  if (A) {
+    A->u.select.sqldeep_singular = S;
+    A->u.select.sqldeep_from_first = 1;
+  }
+}
+
 // VALUES clause
 %type values {LpNode*}
 oneselect(A) ::= values(A).

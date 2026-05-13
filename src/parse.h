@@ -144,10 +144,10 @@
 #define TK_INTERSECT                      144
 #define TK_SELECT                         145
 #define TK_INTEGER                        146
-#define TK_VALUES                         147
-#define TK_DISTINCT                       148
-#define TK_DOT                            149
-#define TK_FROM                           150
+#define TK_FROM                           147
+#define TK_VALUES                         148
+#define TK_DISTINCT                       149
+#define TK_DOT                            150
 #define TK_JOIN                           151
 #define TK_USING                          152
 #define TK_ORDER                          153

@@ -3869,6 +3869,14 @@ static void test_round_trip(void) {
         "SELECT/1 [x] FROM t",
         "SELECT/1 id FROM t WHERE id = 1",
         "SELECT/1 {id, name: full_name} FROM users WHERE id = :id",
+
+        /* FROM-first variant */
+        "FROM t SELECT {a, b}",
+        "FROM users SELECT {id, name: full_name} WHERE id = :id",
+        "FROM t SELECT [x, y]",
+        "FROM t SELECT/1 {a, b} WHERE id = 1",
+        "FROM t1 INNER JOIN t2 ON t1.id = t2.ref SELECT {a: t1.x, b: t2.y}",
+        "FROM users SELECT * WHERE active = 1 ORDER BY name LIMIT 10",
     };
     int n = (int)(sizeof(sqls) / sizeof(sqls[0]));
 

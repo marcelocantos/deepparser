@@ -652,6 +652,15 @@ static void sql_select_body(LpNode *node, LpBuf *out) {
     if (node->u.select.with)
         sql_node(node->u.select.with, out);
 
+    int from_first = node->u.select.sqldeep_from_first && node->u.select.from;
+
+    /* FROM (when sqldeep FROM-first variant) */
+    if (from_first) {
+        lp_buf_puts(out, "FROM ");
+        sql_from(node->u.select.from, out);
+        lp_buf_putc(out, ' ');
+    }
+
     lp_buf_puts(out, "SELECT");
     if (node->u.select.sqldeep_singular) lp_buf_puts(out, "/1");
     lp_buf_putc(out, ' ');
@@ -672,8 +681,8 @@ static void sql_select_body(LpNode *node, LpBuf *out) {
         }
     }
 
-    /* FROM */
-    if (node->u.select.from) {
+    /* FROM (when standard SELECT-first order) */
+    if (node->u.select.from && !from_first) {
         lp_buf_puts(out, " FROM ");
         sql_from(node->u.select.from, out);
     }
