@@ -409,6 +409,47 @@ static void sql_expr(LpNode *node, LpBuf *out, int parent_prec) {
             lp_buf_putc(out, ')');
             break;
 
+        case LP_EXPR_SQLDEEP_OBJECT: {
+            lp_buf_putc(out, '{');
+            for (int i = 0; i < node->u.sqldeep_object.fields.count; i++) {
+                if (i > 0) lp_buf_puts(out, ", ");
+                LpNode *f = node->u.sqldeep_object.fields.items[i];
+                if (!f) continue;
+                switch (f->u.sqldeep_field.key_form) {
+                    case 0: /* bare */
+                        sql_ident(out, f->u.sqldeep_field.key_text);
+                        break;
+                    case 1: /* named id : expr */
+                        sql_ident(out, f->u.sqldeep_field.key_text);
+                        lp_buf_puts(out, ": ");
+                        sql_expr(f->u.sqldeep_field.value, out, 0);
+                        break;
+                    case 2: /* "string key" : expr */
+                        sql_str_lit(out, f->u.sqldeep_field.key_text);
+                        lp_buf_puts(out, ": ");
+                        sql_expr(f->u.sqldeep_field.value, out, 0);
+                        break;
+                    case 3: /* (expr key) : expr */
+                        lp_buf_putc(out, '(');
+                        sql_expr(f->u.sqldeep_field.key_expr, out, 0);
+                        lp_buf_puts(out, "): ");
+                        sql_expr(f->u.sqldeep_field.value, out, 0);
+                        break;
+                }
+            }
+            lp_buf_putc(out, '}');
+            break;
+        }
+
+        case LP_EXPR_SQLDEEP_ARRAY:
+            lp_buf_putc(out, '[');
+            for (int i = 0; i < node->u.sqldeep_array.elements.count; i++) {
+                if (i > 0) lp_buf_puts(out, ", ");
+                sql_expr(node->u.sqldeep_array.elements.items[i], out, 0);
+            }
+            lp_buf_putc(out, ']');
+            break;
+
         default:
             /* Non-expression node used in expression context — delegate */
             sql_node(node, out);

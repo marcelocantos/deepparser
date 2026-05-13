@@ -281,6 +281,11 @@ typedef enum {
     LP_VALUES_ROW,
     LP_TRIGGER_CMD,
 
+    /* sqldeep extensions */
+    LP_EXPR_SQLDEEP_OBJECT,
+    LP_EXPR_SQLDEEP_ARRAY,
+    LP_SQLDEEP_FIELD,
+
     LP_NODE_KIND_COUNT
 } LpNodeKind;
 
@@ -691,6 +696,25 @@ struct LpNode {
         struct {
             LpNode       *stmt;        /* wrapped statement node */
         } trigger_cmd;
+
+        /* sqldeep extensions */
+
+        struct {
+            LpNodeList    fields;      /* LP_SQLDEEP_FIELD nodes */
+        } sqldeep_object;
+
+        struct {
+            LpNodeList    elements;    /* expression nodes */
+        } sqldeep_array;
+
+        struct {
+            /* key_form: 0=bare (id only), 1=named (id COLON expr),
+             * 2=string ("k" COLON expr), 3=computed ((expr) COLON expr) */
+            int           key_form;
+            char         *key_text;    /* used by forms 0, 1, 2 (dequoted) */
+            LpNode       *key_expr;    /* used by form 3 only */
+            LpNode       *value;       /* NULL for form 0 (bare) */
+        } sqldeep_field;
 
     } u;
 };

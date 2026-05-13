@@ -129,6 +129,11 @@ static const unsigned char lp_upper_to_lower[] = {
 #define CC_ILLEGAL   28
 #define CC_NUL       29
 #define CC_BOM       30
+/* sqldeep extensions */
+#define CC_LBRACKET  31
+#define CC_RBRACKET  32
+#define CC_LBRACE    33
+#define CC_RBRACE    34
 
 static const unsigned char aiClass[] = {
 /*         x0  x1  x2  x3  x4  x5  x6  x7  x8  x9  xa  xb  xc  xd  xe  xf */
@@ -137,9 +142,9 @@ static const unsigned char aiClass[] = {
 /* 2x */    7, 15,  8,  5,  4, 22, 24,  8, 17, 18, 21, 20, 23, 11, 26, 16,
 /* 3x */    3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  5, 19, 12, 14, 13,  6,
 /* 4x */    5,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-/* 5x */    1,  1,  1,  1,  1,  1,  1,  1,  0,  2,  2,  9, 28, 28, 28,  2,
+/* 5x */    1,  1,  1,  1,  1,  1,  1,  1,  0,  2,  2, 31, 28, 32, 28,  2,
 /* 6x */    8,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-/* 7x */    1,  1,  1,  1,  1,  1,  1,  1,  0,  2,  2, 28, 10, 28, 25, 28,
+/* 7x */    1,  1,  1,  1,  1,  1,  1,  1,  0,  2,  2, 33, 10, 34, 25, 28,
 /* 8x */   27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
 /* 9x */   27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
 /* Ax */   27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
@@ -392,6 +397,22 @@ int lp_get_token(const unsigned char *z, int *tokenType) {
     }
     case CC_RP: {
         *tokenType = TK_RP;
+        return 1;
+    }
+    case CC_LBRACKET: {
+        *tokenType = TK_LBRACKET;
+        return 1;
+    }
+    case CC_RBRACKET: {
+        *tokenType = TK_RBRACKET;
+        return 1;
+    }
+    case CC_LBRACE: {
+        *tokenType = TK_LBRACE;
+        return 1;
+    }
+    case CC_RBRACE: {
+        *tokenType = TK_RBRACE;
         return 1;
     }
     case CC_SEMI: {

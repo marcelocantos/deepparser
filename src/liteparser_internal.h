@@ -372,6 +372,11 @@ int lp_parse_join_type(LpParseContext *ctx, LpToken *a, LpToken *b, LpToken *c);
 /* --- ID list to node list --- */
 LpNode *lp_make_id_node(LpParseContext *ctx, LpToken *name);
 
+/* --- sqldeep extensions --- */
+LpNode *lp_make_sqldeep_object(LpParseContext *ctx, LpNodeList *fields);
+LpNode *lp_make_sqldeep_array(LpParseContext *ctx, LpNodeList *elements);
+LpNode *lp_make_sqldeep_field_bare(LpParseContext *ctx, LpToken *name);
+
 #ifdef __cplusplus
 }
 #endif

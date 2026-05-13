@@ -1439,6 +1439,33 @@ LpNode *lp_make_id_node(LpParseContext *ctx, LpToken *name) {
 }
 
 /* ================================================================== */
+/*  sqldeep extensions                                                 */
+/* ================================================================== */
+
+LpNode *lp_make_sqldeep_object(LpParseContext *ctx, LpNodeList *fields) {
+    LpNode *n = lp_node_new(ctx, LP_EXPR_SQLDEEP_OBJECT);
+    if (!n) return NULL;
+    if (fields) n->u.sqldeep_object.fields = *fields;
+    return n;
+}
+
+LpNode *lp_make_sqldeep_array(LpParseContext *ctx, LpNodeList *elements) {
+    LpNode *n = lp_node_new(ctx, LP_EXPR_SQLDEEP_ARRAY);
+    if (!n) return NULL;
+    if (elements) n->u.sqldeep_array.elements = *elements;
+    return n;
+}
+
+LpNode *lp_make_sqldeep_field_bare(LpParseContext *ctx, LpToken *name) {
+    LpNode *n = lp_node_new(ctx, LP_SQLDEEP_FIELD);
+    if (!n) return NULL;
+    node_pos_tok(n, name);
+    n->u.sqldeep_field.key_form = 0;
+    n->u.sqldeep_field.key_text = lp_token_dequote(ctx, name);
+    return n;
+}
+
+/* ================================================================== */
 /*  Name functions                                                     */
 /* ================================================================== */
 
@@ -1511,6 +1538,9 @@ const char *lp_node_kind_name(LpNodeKind kind) {
         case LP_INDEX_COLUMN:        return "INDEX_COLUMN";
         case LP_VALUES_ROW:          return "VALUES_ROW";
         case LP_TRIGGER_CMD:         return "TRIGGER_CMD";
+        case LP_EXPR_SQLDEEP_OBJECT: return "EXPR_SQLDEEP_OBJECT";
+        case LP_EXPR_SQLDEEP_ARRAY:  return "EXPR_SQLDEEP_ARRAY";
+        case LP_SQLDEEP_FIELD:       return "SQLDEEP_FIELD";
         case LP_NODE_KIND_COUNT:     return "NODE_KIND_COUNT";
     }
     return "UNKNOWN";
@@ -2028,6 +2058,21 @@ int lp_node_equal(const LpNode *a, const LpNode *b) {
             NE(a->u.trigger_cmd.stmt, b->u.trigger_cmd.stmt);
             break;
 
+        case LP_EXPR_SQLDEEP_OBJECT:
+            LE(a->u.sqldeep_object.fields, b->u.sqldeep_object.fields);
+            break;
+
+        case LP_EXPR_SQLDEEP_ARRAY:
+            LE(a->u.sqldeep_array.elements, b->u.sqldeep_array.elements);
+            break;
+
+        case LP_SQLDEEP_FIELD:
+            IE(a->u.sqldeep_field.key_form, b->u.sqldeep_field.key_form);
+            SE(a->u.sqldeep_field.key_text, b->u.sqldeep_field.key_text);
+            NE(a->u.sqldeep_field.key_expr, b->u.sqldeep_field.key_expr);
+            NE(a->u.sqldeep_field.value, b->u.sqldeep_field.value);
+            break;
+
         case LP_NODE_KIND_COUNT:
             break;
     }
@@ -2330,6 +2375,19 @@ static void fix_node(LpNode *node) {
 
         case LP_TRIGGER_CMD:
             FIX_NODE(node, node->u.trigger_cmd.stmt);
+            break;
+
+        case LP_EXPR_SQLDEEP_OBJECT:
+            FIX_LIST(node, node->u.sqldeep_object.fields);
+            break;
+
+        case LP_EXPR_SQLDEEP_ARRAY:
+            FIX_LIST(node, node->u.sqldeep_array.elements);
+            break;
+
+        case LP_SQLDEEP_FIELD:
+            FIX_NODE(node, node->u.sqldeep_field.key_expr);
+            FIX_NODE(node, node->u.sqldeep_field.value);
             break;
 
         case LP_NODE_KIND_COUNT:
@@ -2828,6 +2886,21 @@ LpNode *lp_node_clone(arena_t *arena, const LpNode *node) {
             n->u.trigger_cmd.stmt = CN(node->u.trigger_cmd.stmt);
             break;
 
+        case LP_EXPR_SQLDEEP_OBJECT:
+            n->u.sqldeep_object.fields = CL(node->u.sqldeep_object.fields);
+            break;
+
+        case LP_EXPR_SQLDEEP_ARRAY:
+            n->u.sqldeep_array.elements = CL(node->u.sqldeep_array.elements);
+            break;
+
+        case LP_SQLDEEP_FIELD:
+            n->u.sqldeep_field.key_form = node->u.sqldeep_field.key_form;
+            n->u.sqldeep_field.key_text = CS(node->u.sqldeep_field.key_text);
+            n->u.sqldeep_field.key_expr = CN(node->u.sqldeep_field.key_expr);
+            n->u.sqldeep_field.value = CN(node->u.sqldeep_field.value);
+            break;
+
         case LP_NODE_KIND_COUNT:
             break;
     }
@@ -3158,6 +3231,19 @@ static int walk_children(LpNode *node, LpVisitor *v) {
 
         case LP_TRIGGER_CMD:
             WALK_NODE(node->u.trigger_cmd.stmt);
+            break;
+
+        case LP_EXPR_SQLDEEP_OBJECT:
+            WALK_LIST(node->u.sqldeep_object.fields);
+            break;
+
+        case LP_EXPR_SQLDEEP_ARRAY:
+            WALK_LIST(node->u.sqldeep_array.elements);
+            break;
+
+        case LP_SQLDEEP_FIELD:
+            WALK_NODE(node->u.sqldeep_field.key_expr);
+            WALK_NODE(node->u.sqldeep_field.value);
             break;
 
         case LP_NODE_KIND_COUNT:
@@ -3835,6 +3921,22 @@ static void json_node(LpNode *node, LpBuf *out, int depth, int pretty) {
 
         case LP_TRIGGER_CMD:
             J_NODE("stmt", node->u.trigger_cmd.stmt);
+            break;
+
+        case LP_EXPR_SQLDEEP_OBJECT:
+            J_LIST("fields", node->u.sqldeep_object.fields);
+            break;
+
+        case LP_EXPR_SQLDEEP_ARRAY:
+            J_LIST("elements", node->u.sqldeep_array.elements);
+            break;
+
+        case LP_SQLDEEP_FIELD:
+            J_SEP(); J_KEY("key_form");
+            lp_buf_printf(out, "%d", node->u.sqldeep_field.key_form);
+            J_STR("key_text", node->u.sqldeep_field.key_text);
+            J_NODE("key_expr", node->u.sqldeep_field.key_expr);
+            J_NODE("value", node->u.sqldeep_field.value);
             break;
 
         case LP_NODE_KIND_COUNT:

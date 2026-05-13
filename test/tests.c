@@ -2118,14 +2118,12 @@ static void test_quoted_identifiers(void) {
     } else FAIL(err ? err : "fail");
 
     arena_reset(a);
-    TEST("Bracket-quoted identifier: [my col]");
+    TEST("Bracket-quoted identifier rejected (sqldeep claims [...] for arrays)");
     n = parse("SELECT [my col] FROM t", a, &err);
-    if (n && n->u.select.result_columns.count == 1) {
-        LpNode *e = n->u.select.result_columns.items[0]->u.result_column.expr;
-        if (e->kind == LP_EXPR_COLUMN_REF && strcmp(e->u.column_ref.column, "my col") == 0)
-            PASS();
-        else FAIL("bracket dequote wrong");
-    } else FAIL(err ? err : "fail");
+    /* Deepparser repurposes [...] as a sqldeep array literal, so SQLite's
+     * bracket-quoted identifier syntax is intentionally unsupported. The
+     * parse should fail; use "my col" or `my col` instead. */
+    if (!n) PASS(); else FAIL("expected parse failure, but parsed");
 
     arena_reset(a);
     TEST("String with escaped quote: 'it''s'");
@@ -3840,6 +3838,18 @@ static void test_round_trip(void) {
         "INSERT INTO t(a, b) SELECT x, y FROM s WHERE z > 0 ORDER BY x LIMIT 100",
         "SELECT (SELECT MAX(x) FROM t2 WHERE t2.grp = t1.grp) FROM t1",
         "SELECT COALESCE(a, b, c, 0), NULLIF(x, 0) FROM t",
+
+        /* sqldeep extensions: object/array literals (bare-id form) */
+        "SELECT {a, b, c} FROM t",
+        "SELECT {a} FROM t",
+        "SELECT {} FROM t",
+        "SELECT [1, 2, 3] FROM t",
+        "SELECT [x] FROM t",
+        "SELECT [] FROM t",
+        "SELECT {x, y} FROM t WHERE id = 1",
+        "SELECT * FROM t WHERE {a, b} IS NOT NULL",
+        "SELECT [a, b, c] AS arr FROM t",
+        "SELECT [{x, y}, {x, y}] FROM t",
     };
     int n = (int)(sizeof(sqls) / sizeof(sqls[0]));
 

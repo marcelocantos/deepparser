@@ -200,6 +200,9 @@ columnname(A) ::= nm(A) typetoken(Y). { lp_add_column(ctx, &A, &Y); }
 %token OR AND NOT IS ISNOT MATCH LIKE_KW BETWEEN IN ISNULL NOTNULL NE EQ.
 %token GT LE LT GE ESCAPE.
 
+// sqldeep tokens
+%token LBRACE RBRACE LBRACKET RBRACKET.
+
 // Fallback tokens
 %fallback ID
   ABORT ACTION AFTER ANALYZE ASC ATTACH BEFORE BEGIN BY CASCADE CAST COLUMNKW
@@ -1020,6 +1023,25 @@ nexprlist(A) ::= expr(Y). {
 %type paren_exprlist {LpNodeList*}
 paren_exprlist(A) ::= .   {A = 0;}
 paren_exprlist(A) ::= LP exprlist(X) RP.  {A = X;}
+
+// sqldeep object/array literals
+%type sqldeep_object_fields {LpNodeList*}
+%type sqldeep_object_field  {LpNode*}
+
+expr(A) ::= LBRACE RBRACE.                          { A = lp_make_sqldeep_object(ctx, 0); }
+expr(A) ::= LBRACE sqldeep_object_fields(X) RBRACE. { A = lp_make_sqldeep_object(ctx, X); }
+expr(A) ::= LBRACKET RBRACKET.                      { A = lp_make_sqldeep_array(ctx, 0); }
+expr(A) ::= LBRACKET nexprlist(X) RBRACKET.         { A = lp_make_sqldeep_array(ctx, X); }
+
+sqldeep_object_fields(A) ::= sqldeep_object_field(F). {
+  A = (LpNodeList*)arena_zeroalloc(ctx->arena, sizeof(LpNodeList));
+  if (F) lp_list_append(ctx, A, F);
+}
+sqldeep_object_fields(A) ::= sqldeep_object_fields(A) COMMA sqldeep_object_field(F). {
+  if (F) lp_list_append(ctx, A, F);
+}
+
+sqldeep_object_field(A) ::= idj(K). { A = lp_make_sqldeep_field_bare(ctx, &K); }
 
 /////////////////// CREATE INDEX /////////////////////////////
 
