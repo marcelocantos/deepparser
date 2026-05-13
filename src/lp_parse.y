@@ -201,7 +201,7 @@ columnname(A) ::= nm(A) typetoken(Y). { lp_add_column(ctx, &A, &Y); }
 %token GT LE LT GE ESCAPE.
 
 // sqldeep tokens
-%token LBRACE RBRACE LBRACKET RBRACKET.
+%token LBRACE RBRACE LBRACKET RBRACKET COLON.
 
 // Fallback tokens
 %fallback ID
@@ -1041,7 +1041,10 @@ sqldeep_object_fields(A) ::= sqldeep_object_fields(A) COMMA sqldeep_object_field
   if (F) lp_list_append(ctx, A, F);
 }
 
-sqldeep_object_field(A) ::= idj(K). { A = lp_make_sqldeep_field_bare(ctx, &K); }
+sqldeep_object_field(A) ::= idj(K).                    { A = lp_make_sqldeep_field_bare(ctx, &K); }
+sqldeep_object_field(A) ::= idj(K) COLON expr(V).      { A = lp_make_sqldeep_field_named(ctx, &K, V); }
+sqldeep_object_field(A) ::= STRING(K) COLON expr(V).   { A = lp_make_sqldeep_field_string(ctx, &K, V); }
+sqldeep_object_field(A) ::= LP expr(K) RP COLON expr(V). { A = lp_make_sqldeep_field_computed(ctx, K, V); }
 
 /////////////////// CREATE INDEX /////////////////////////////
 

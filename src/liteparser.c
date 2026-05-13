@@ -1465,6 +1465,36 @@ LpNode *lp_make_sqldeep_field_bare(LpParseContext *ctx, LpToken *name) {
     return n;
 }
 
+LpNode *lp_make_sqldeep_field_named(LpParseContext *ctx, LpToken *name, LpNode *value) {
+    LpNode *n = lp_node_new(ctx, LP_SQLDEEP_FIELD);
+    if (!n) return NULL;
+    node_pos_tok(n, name);
+    n->u.sqldeep_field.key_form = 1;
+    n->u.sqldeep_field.key_text = lp_token_dequote(ctx, name);
+    n->u.sqldeep_field.value = value;
+    return n;
+}
+
+LpNode *lp_make_sqldeep_field_string(LpParseContext *ctx, LpToken *key, LpNode *value) {
+    LpNode *n = lp_node_new(ctx, LP_SQLDEEP_FIELD);
+    if (!n) return NULL;
+    node_pos_tok(n, key);
+    n->u.sqldeep_field.key_form = 2;
+    n->u.sqldeep_field.key_text = lp_token_dequote(ctx, key);
+    n->u.sqldeep_field.value = value;
+    return n;
+}
+
+LpNode *lp_make_sqldeep_field_computed(LpParseContext *ctx, LpNode *key, LpNode *value) {
+    LpNode *n = lp_node_new(ctx, LP_SQLDEEP_FIELD);
+    if (!n) return NULL;
+    node_pos_node(n, key);
+    n->u.sqldeep_field.key_form = 3;
+    n->u.sqldeep_field.key_expr = key;
+    n->u.sqldeep_field.value = value;
+    return n;
+}
+
 /* ================================================================== */
 /*  Name functions                                                     */
 /* ================================================================== */

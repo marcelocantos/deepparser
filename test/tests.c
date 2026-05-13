@@ -3839,7 +3839,7 @@ static void test_round_trip(void) {
         "SELECT (SELECT MAX(x) FROM t2 WHERE t2.grp = t1.grp) FROM t1",
         "SELECT COALESCE(a, b, c, 0), NULLIF(x, 0) FROM t",
 
-        /* sqldeep extensions: object/array literals (bare-id form) */
+        /* sqldeep extensions: object/array literals */
         "SELECT {a, b, c} FROM t",
         "SELECT {a} FROM t",
         "SELECT {} FROM t",
@@ -3850,6 +3850,19 @@ static void test_round_trip(void) {
         "SELECT * FROM t WHERE {a, b} IS NOT NULL",
         "SELECT [a, b, c] AS arr FROM t",
         "SELECT [{x, y}, {x, y}] FROM t",
+
+        /* sqldeep object field forms: named, string-key, computed-key */
+        "SELECT {a: 1} FROM t",
+        "SELECT {a: x, b: y + 1} FROM t",
+        "SELECT {id, name: full_name, age: years} FROM t",
+        "SELECT {\"order id\": id, total: amount} FROM t",
+        "SELECT {(upper(prefix)): value} FROM t",
+        "SELECT {nested: {x, y}} FROM t",
+        "SELECT {arr: [1, 2, 3]} FROM t",
+
+        /* :name parameters still work (not stolen by COLON) */
+        "SELECT * FROM t WHERE id = :id",
+        "INSERT INTO t(a, b) VALUES(:a, :b)",
     };
     int n = (int)(sizeof(sqls) / sizeof(sqls[0]));
 

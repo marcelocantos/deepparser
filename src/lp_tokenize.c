@@ -608,6 +608,12 @@ int lp_get_token(const unsigned char *z, int *tokenType) {
         int n = 0;
         testcase( z[0]=='$' );  testcase( z[0]=='@' );
         testcase( z[0]==':' );  testcase( z[0]=='#' );
+        /* sqldeep: ":" followed by a non-id char is a standalone TK_COLON
+         * (object field separator). ":name" continues to lex as TK_VARIABLE. */
+        if (z[0] == ':' && !IdChar(z[1]) && z[1] != ':') {
+            *tokenType = TK_COLON;
+            return 1;
+        }
         *tokenType = TK_VARIABLE;
         for (i = 1; (c = z[i]) != 0; i++) {
             if (IdChar(c)) {
