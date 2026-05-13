@@ -4,7 +4,7 @@ CFLAGS += -DNDEBUG
 DEBUG_CFLAGS = -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare -g -O0
 
 SRCDIR     = src
-SQLITE_SRC = sqlite-master
+TOOLDIR    = tool
 
 # Headers
 HDRS = $(SRCDIR)/liteparser.h $(SRCDIR)/liteparser_internal.h \
@@ -26,9 +26,9 @@ else
   DYLIB_FLAGS = -shared
 endif
 
-# Lemon parser generator
+# Lemon parser generator (vendored from SQLite, public domain)
 LEMON     = ./lemon
-LEMON_SRC = $(SQLITE_SRC)/tool/lemon.c
+LEMON_SRC = $(TOOLDIR)/lemon.c
 
 .PHONY: all clean test test-suite debug shared regen wasm fuzz fuzz-asan fuzz-libfuzzer
 
@@ -161,7 +161,7 @@ $(WASM_DIR)/liteparser.mjs: $(LIB_SRCS) $(HDRS)
 	  -o $@ \
 	  $(LIB_SRCS)
 
-# --- Regenerate parser (requires sqlite-master/) ---
+# --- Regenerate parser (uses vendored tool/lemon.c) ---
 
 $(LEMON): $(LEMON_SRC)
 	$(CC) -O2 -o $@ $(LEMON_SRC)
