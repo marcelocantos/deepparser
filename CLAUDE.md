@@ -102,6 +102,13 @@ Makefile                  Build
 
 ## Licensing
 
-Apache 2.0 for sqldeep additions (SPDX header on modified files).
-Upstream files retain Marco Bambini / SQLite AI copyright; see
-`LICENSE`.
+MIT License throughout, matching upstream. Modifications to upstream
+files inherit MIT; new files added in this fork are also MIT. The
+LICENSE file carries both the upstream SQLite AI copyright and a
+contributor line for sqldeep grammar extensions. See `LICENSE`.
+
+Note: this deviates from the global "always Apache 2.0" convention.
+Relicensing upstream MIT code is not an option, and dual-licensing
+just the additions would create a per-file licensing minefield that
+doesn't pay for itself. Sqldeep itself (the consumer) remains
+Apache 2.0; the MIT/Apache 2.0 boundary is at the submodule edge.
