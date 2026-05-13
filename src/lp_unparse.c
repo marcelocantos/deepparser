@@ -540,6 +540,43 @@ static void sql_from(LpNode *node, LpBuf *out) {
             break;
         }
 
+        case LP_SQLDEEP_JOIN_PATH: {
+            if (node->u.sqldeep_join_path.prefix) {
+                sql_from(node->u.sqldeep_join_path.prefix, out);
+                lp_buf_puts(out, ", ");
+            }
+            sql_ident(out, node->u.sqldeep_join_path.start_alias);
+            for (int i = 0; i < node->u.sqldeep_join_path.steps.count; i++) {
+                sql_from(node->u.sqldeep_join_path.steps.items[i], out);
+            }
+            break;
+        }
+
+        case LP_SQLDEEP_JOIN_STEP:
+            lp_buf_puts(out, node->u.sqldeep_join_step.forward ? "->" : "<-");
+            sql_ident(out, node->u.sqldeep_join_step.table);
+            if (node->u.sqldeep_join_step.alias) {
+                lp_buf_putc(out, ' ');
+                sql_ident(out, node->u.sqldeep_join_step.alias);
+            }
+            if (node->u.sqldeep_join_step.on_expr) {
+                lp_buf_puts(out, " ON ");
+                sql_expr(node->u.sqldeep_join_step.on_expr, out, 0);
+            }
+            if (node->u.sqldeep_join_step.using_cols.count > 0) {
+                lp_buf_puts(out, " USING (");
+                for (int i = 0; i < node->u.sqldeep_join_step.using_cols.count; i++) {
+                    if (i > 0) lp_buf_puts(out, ", ");
+                    LpNode *col = node->u.sqldeep_join_step.using_cols.items[i];
+                    if (col->kind == LP_EXPR_COLUMN_REF)
+                        sql_ident(out, col->u.column_ref.column);
+                    else
+                        sql_expr(col, out, 0);
+                }
+                lp_buf_putc(out, ')');
+            }
+            break;
+
         default:
             sql_node(node, out);
             break;

@@ -202,6 +202,7 @@ columnname(A) ::= nm(A) typetoken(Y). { lp_add_column(ctx, &A, &Y); }
 
 // sqldeep tokens
 %token LBRACE RBRACE LBRACKET RBRACKET COLON.
+%token JOIN_ARROW REV_JOIN_ARROW.
 
 // Fallback tokens
 %fallback ID
@@ -470,6 +471,30 @@ oneselect(A) ::= FROM seltablist(X) SELECT sqldeep_singular(S) distinct(D) selco
     A->u.select.sqldeep_singular = S;
     A->u.select.sqldeep_from_first = 1;
   }
+}
+
+// sqldeep join paths in FROM clause: c->orders o [ON ...] [<-/-> ...]*
+%type sqldeep_arrow_steps {LpNodeList*}
+%type sqldeep_arrow_step  {LpNode*}
+
+seltablist(A) ::= stl_prefix(P) nm(START) dbnm(D) as(Z) sqldeep_arrow_steps(STEPS). {
+  (void)D; (void)Z; /* TODO: capture schema-qualified start and start alias */
+  A = lp_make_sqldeep_join_path(ctx, P, &START, STEPS);
+}
+
+sqldeep_arrow_steps(A) ::= sqldeep_arrow_step(S). {
+  A = (LpNodeList*)arena_zeroalloc(ctx->arena, sizeof(LpNodeList));
+  if (S) lp_list_append(ctx, A, S);
+}
+sqldeep_arrow_steps(A) ::= sqldeep_arrow_steps(A) sqldeep_arrow_step(S). {
+  if (S) lp_list_append(ctx, A, S);
+}
+
+sqldeep_arrow_step(A) ::= JOIN_ARROW nm(T) as(AL) on_using(N). {
+  A = lp_make_sqldeep_join_step(ctx, 1, &T, &AL, N.pOn, N.pUsing);
+}
+sqldeep_arrow_step(A) ::= REV_JOIN_ARROW nm(T) as(AL) on_using(N). {
+  A = lp_make_sqldeep_join_step(ctx, 0, &T, &AL, N.pOn, N.pUsing);
 }
 
 // VALUES clause

@@ -285,6 +285,8 @@ typedef enum {
     LP_EXPR_SQLDEEP_OBJECT,
     LP_EXPR_SQLDEEP_ARRAY,
     LP_SQLDEEP_FIELD,
+    LP_SQLDEEP_JOIN_PATH,
+    LP_SQLDEEP_JOIN_STEP,
 
     LP_NODE_KIND_COUNT
 } LpNodeKind;
@@ -717,6 +719,20 @@ struct LpNode {
             LpNode       *key_expr;    /* used by form 3 only */
             LpNode       *value;       /* NULL for form 0 (bare) */
         } sqldeep_field;
+
+        struct {
+            LpNode       *prefix;      /* preceding stl_prefix (joins/tables), or NULL */
+            char         *start_alias; /* leftmost table or alias name */
+            LpNodeList    steps;       /* LP_SQLDEEP_JOIN_STEP nodes */
+        } sqldeep_join_path;
+
+        struct {
+            int           forward;     /* 1 for ->, 0 for <- */
+            char         *table;
+            char         *alias;       /* NULL if not given */
+            LpNode       *on_expr;     /* ON expr, or NULL */
+            LpNodeList    using_cols;  /* USING (cols), empty if none */
+        } sqldeep_join_step;
 
     } u;
 };

@@ -3877,6 +3877,21 @@ static void test_round_trip(void) {
         "FROM t SELECT/1 {a, b} WHERE id = 1",
         "FROM t1 INNER JOIN t2 ON t1.id = t2.ref SELECT {a: t1.x, b: t2.y}",
         "FROM users SELECT * WHERE active = 1 ORDER BY name LIMIT 10",
+
+        /* Join arrows: forward, reverse, chain, bridge */
+        "FROM c->orders o SELECT {a, b}",
+        "FROM o<-customers c SELECT {a, b}",
+        "FROM c->orders o->items i SELECT {a: c.id, b: i.qty}",
+        "FROM c->custacct<-accounts a SELECT {id, type}",
+        "SELECT {a, b} FROM c->orders o",
+
+        /* ON / USING shorthand on join arrows */
+        "FROM c->orders o ON id = cust_id SELECT {a, b}",
+        "FROM c->orders o USING (person_id) SELECT {a, b}",
+        "FROM c->orders o ON id = cust_id->items i ON oid = order_ref SELECT {x}",
+
+        /* :ident parameter still works after join-arrow tokenizer change */
+        "SELECT * FROM t WHERE id = :customer_id",
     };
     int n = (int)(sizeof(sqls) / sizeof(sqls[0]));
 

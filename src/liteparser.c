@@ -1495,6 +1495,32 @@ LpNode *lp_make_sqldeep_field_computed(LpParseContext *ctx, LpNode *key, LpNode 
     return n;
 }
 
+LpNode *lp_make_sqldeep_join_path(LpParseContext *ctx, LpNode *prefix,
+                                   LpToken *start_alias, LpNodeList *steps) {
+    LpNode *n = lp_node_new(ctx, LP_SQLDEEP_JOIN_PATH);
+    if (!n) return NULL;
+    node_pos_tok(n, start_alias);
+    n->u.sqldeep_join_path.prefix = prefix;
+    n->u.sqldeep_join_path.start_alias = lp_token_dequote(ctx, start_alias);
+    if (steps) n->u.sqldeep_join_path.steps = *steps;
+    return n;
+}
+
+LpNode *lp_make_sqldeep_join_step(LpParseContext *ctx, int forward,
+                                   LpToken *table, LpToken *alias,
+                                   LpNode *on_expr, LpNodeList *using_cols) {
+    LpNode *n = lp_node_new(ctx, LP_SQLDEEP_JOIN_STEP);
+    if (!n) return NULL;
+    node_pos_tok(n, table);
+    n->u.sqldeep_join_step.forward = forward;
+    n->u.sqldeep_join_step.table = lp_token_dequote(ctx, table);
+    if (alias && alias->n > 0)
+        n->u.sqldeep_join_step.alias = lp_token_dequote(ctx, alias);
+    n->u.sqldeep_join_step.on_expr = on_expr;
+    if (using_cols) n->u.sqldeep_join_step.using_cols = *using_cols;
+    return n;
+}
+
 /* ================================================================== */
 /*  Name functions                                                     */
 /* ================================================================== */
@@ -1571,6 +1597,8 @@ const char *lp_node_kind_name(LpNodeKind kind) {
         case LP_EXPR_SQLDEEP_OBJECT: return "EXPR_SQLDEEP_OBJECT";
         case LP_EXPR_SQLDEEP_ARRAY:  return "EXPR_SQLDEEP_ARRAY";
         case LP_SQLDEEP_FIELD:       return "SQLDEEP_FIELD";
+        case LP_SQLDEEP_JOIN_PATH:   return "SQLDEEP_JOIN_PATH";
+        case LP_SQLDEEP_JOIN_STEP:   return "SQLDEEP_JOIN_STEP";
         case LP_NODE_KIND_COUNT:     return "NODE_KIND_COUNT";
     }
     return "UNKNOWN";
@@ -2105,6 +2133,20 @@ int lp_node_equal(const LpNode *a, const LpNode *b) {
             NE(a->u.sqldeep_field.value, b->u.sqldeep_field.value);
             break;
 
+        case LP_SQLDEEP_JOIN_PATH:
+            NE(a->u.sqldeep_join_path.prefix, b->u.sqldeep_join_path.prefix);
+            SE(a->u.sqldeep_join_path.start_alias, b->u.sqldeep_join_path.start_alias);
+            LE(a->u.sqldeep_join_path.steps, b->u.sqldeep_join_path.steps);
+            break;
+
+        case LP_SQLDEEP_JOIN_STEP:
+            IE(a->u.sqldeep_join_step.forward, b->u.sqldeep_join_step.forward);
+            SE(a->u.sqldeep_join_step.table, b->u.sqldeep_join_step.table);
+            SE(a->u.sqldeep_join_step.alias, b->u.sqldeep_join_step.alias);
+            NE(a->u.sqldeep_join_step.on_expr, b->u.sqldeep_join_step.on_expr);
+            LE(a->u.sqldeep_join_step.using_cols, b->u.sqldeep_join_step.using_cols);
+            break;
+
         case LP_NODE_KIND_COUNT:
             break;
     }
@@ -2420,6 +2462,16 @@ static void fix_node(LpNode *node) {
         case LP_SQLDEEP_FIELD:
             FIX_NODE(node, node->u.sqldeep_field.key_expr);
             FIX_NODE(node, node->u.sqldeep_field.value);
+            break;
+
+        case LP_SQLDEEP_JOIN_PATH:
+            FIX_NODE(node, node->u.sqldeep_join_path.prefix);
+            FIX_LIST(node, node->u.sqldeep_join_path.steps);
+            break;
+
+        case LP_SQLDEEP_JOIN_STEP:
+            FIX_NODE(node, node->u.sqldeep_join_step.on_expr);
+            FIX_LIST(node, node->u.sqldeep_join_step.using_cols);
             break;
 
         case LP_NODE_KIND_COUNT:
@@ -2935,6 +2987,20 @@ LpNode *lp_node_clone(arena_t *arena, const LpNode *node) {
             n->u.sqldeep_field.value = CN(node->u.sqldeep_field.value);
             break;
 
+        case LP_SQLDEEP_JOIN_PATH:
+            n->u.sqldeep_join_path.prefix = CN(node->u.sqldeep_join_path.prefix);
+            n->u.sqldeep_join_path.start_alias = CS(node->u.sqldeep_join_path.start_alias);
+            n->u.sqldeep_join_path.steps = CL(node->u.sqldeep_join_path.steps);
+            break;
+
+        case LP_SQLDEEP_JOIN_STEP:
+            n->u.sqldeep_join_step.forward = node->u.sqldeep_join_step.forward;
+            n->u.sqldeep_join_step.table = CS(node->u.sqldeep_join_step.table);
+            n->u.sqldeep_join_step.alias = CS(node->u.sqldeep_join_step.alias);
+            n->u.sqldeep_join_step.on_expr = CN(node->u.sqldeep_join_step.on_expr);
+            n->u.sqldeep_join_step.using_cols = CL(node->u.sqldeep_join_step.using_cols);
+            break;
+
         case LP_NODE_KIND_COUNT:
             break;
     }
@@ -3278,6 +3344,16 @@ static int walk_children(LpNode *node, LpVisitor *v) {
         case LP_SQLDEEP_FIELD:
             WALK_NODE(node->u.sqldeep_field.key_expr);
             WALK_NODE(node->u.sqldeep_field.value);
+            break;
+
+        case LP_SQLDEEP_JOIN_PATH:
+            WALK_NODE(node->u.sqldeep_join_path.prefix);
+            WALK_LIST(node->u.sqldeep_join_path.steps);
+            break;
+
+        case LP_SQLDEEP_JOIN_STEP:
+            WALK_NODE(node->u.sqldeep_join_step.on_expr);
+            WALK_LIST(node->u.sqldeep_join_step.using_cols);
             break;
 
         case LP_NODE_KIND_COUNT:
@@ -3975,6 +4051,20 @@ static void json_node(LpNode *node, LpBuf *out, int depth, int pretty) {
             J_STR("key_text", node->u.sqldeep_field.key_text);
             J_NODE("key_expr", node->u.sqldeep_field.key_expr);
             J_NODE("value", node->u.sqldeep_field.value);
+            break;
+
+        case LP_SQLDEEP_JOIN_PATH:
+            J_NODE("prefix", node->u.sqldeep_join_path.prefix);
+            J_STR("start_alias", node->u.sqldeep_join_path.start_alias);
+            J_LIST("steps", node->u.sqldeep_join_path.steps);
+            break;
+
+        case LP_SQLDEEP_JOIN_STEP:
+            J_BOOL("forward", node->u.sqldeep_join_step.forward);
+            J_STR("table", node->u.sqldeep_join_step.table);
+            J_STR("alias", node->u.sqldeep_join_step.alias);
+            J_NODE("on_expr", node->u.sqldeep_join_step.on_expr);
+            J_LIST("using_cols", node->u.sqldeep_join_step.using_cols);
             break;
 
         case LP_NODE_KIND_COUNT:

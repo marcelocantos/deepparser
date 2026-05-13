@@ -22,6 +22,11 @@
 #define sqlite3Isdigit(c)  ((c)>='0'&&(c)<='9')
 #define sqlite3Isxdigit(c) (((c)>='0'&&(c)<='9')||((c)>='a'&&(c)<='f')||((c)>='A'&&(c)<='F'))
 
+/* sqldeep: identifier-start char (used to disambiguate join arrows). */
+#define lp_is_ident_start(c) \
+    (((c)>='a' && (c)<='z') || ((c)>='A' && (c)<='Z') || \
+     (c)=='_' || (c)=='"' || (c)=='`' || (unsigned char)(c) >= 0x80)
+
 /* ------------------------------------------------------------------ */
 /*  Character-type map (from SQLite global.c, ASCII only)              */
 /*                                                                     */
@@ -385,8 +390,19 @@ int lp_get_token(const unsigned char *z, int *tokenType) {
             *tokenType = TK_COMMENT;
             return i;
         } else if (z[1] == '>') {
-            *tokenType = TK_PTR;
-            return 2 + (z[2] == '>');
+            /* sqldeep: "->" followed by an ident-start is a join arrow;
+             * otherwise it's the SQL JSON arrow (TK_PTR). "->>" is always
+             * the JSON arrow regardless of what follows. */
+            if (z[2] == '>') {
+                *tokenType = TK_PTR;
+                return 3;
+            }
+            if (lp_is_ident_start(z[2])) {
+                *tokenType = TK_JOIN_ARROW;
+            } else {
+                *tokenType = TK_PTR;
+            }
+            return 2;
         }
         *tokenType = TK_MINUS;
         return 1;
@@ -454,6 +470,11 @@ int lp_get_token(const unsigned char *z, int *tokenType) {
             return 2;
         } else if (c == '<') {
             *tokenType = TK_LSHIFT;
+            return 2;
+        } else if (c == '-' && lp_is_ident_start(z[2])) {
+            /* sqldeep: "<-" followed by an ident-start is a reverse join
+             * arrow. Otherwise it's "<" followed by "-" (less-than negative). */
+            *tokenType = TK_REV_JOIN_ARROW;
             return 2;
         } else {
             *tokenType = TK_LT;

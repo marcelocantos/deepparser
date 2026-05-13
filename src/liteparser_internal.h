@@ -379,6 +379,11 @@ LpNode *lp_make_sqldeep_field_bare(LpParseContext *ctx, LpToken *name);
 LpNode *lp_make_sqldeep_field_named(LpParseContext *ctx, LpToken *name, LpNode *value);
 LpNode *lp_make_sqldeep_field_string(LpParseContext *ctx, LpToken *key, LpNode *value);
 LpNode *lp_make_sqldeep_field_computed(LpParseContext *ctx, LpNode *key, LpNode *value);
+LpNode *lp_make_sqldeep_join_path(LpParseContext *ctx, LpNode *prefix,
+                                   LpToken *start_alias, LpNodeList *steps);
+LpNode *lp_make_sqldeep_join_step(LpParseContext *ctx, int forward,
+                                   LpToken *table, LpToken *alias,
+                                   LpNode *on_expr, LpNodeList *using_cols);
 
 #ifdef __cplusplus
 }
