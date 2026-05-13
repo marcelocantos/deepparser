@@ -3863,6 +3863,12 @@ static void test_round_trip(void) {
         /* :name parameters still work (not stolen by COLON) */
         "SELECT * FROM t WHERE id = :id",
         "INSERT INTO t(a, b) VALUES(:a, :b)",
+
+        /* SELECT/1 singular modifier */
+        "SELECT/1 {a, b} FROM t",
+        "SELECT/1 [x] FROM t",
+        "SELECT/1 id FROM t WHERE id = 1",
+        "SELECT/1 {id, name: full_name} FROM users WHERE id = :id",
     };
     int n = (int)(sizeof(sqls) / sizeof(sqls[0]));
 

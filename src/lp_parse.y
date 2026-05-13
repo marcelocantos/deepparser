@@ -427,15 +427,27 @@ multiselect_op(A) ::= UNION ALL.         {A = LP_COMPOUND_UNION_ALL;}
 multiselect_op(A) ::= EXCEPT.            {A = LP_COMPOUND_EXCEPT;}
 multiselect_op(A) ::= INTERSECT.         {A = LP_COMPOUND_INTERSECT;}
 
-oneselect(A) ::= SELECT distinct(D) selcollist(W) from(X) where_opt(Y)
+oneselect(A) ::= SELECT sqldeep_singular(S) distinct(D) selcollist(W) from(X) where_opt(Y)
                  groupby_opt(P) having_opt(Q)
                  orderby_opt(Z) limit_opt(L). {
   A = lp_make_select(ctx, D, W, X, Y, P, Q, Z, L);
+  if (A) A->u.select.sqldeep_singular = S;
 }
-oneselect(A) ::= SELECT distinct(D) selcollist(W) from(X) where_opt(Y)
+oneselect(A) ::= SELECT sqldeep_singular(S) distinct(D) selcollist(W) from(X) where_opt(Y)
                  groupby_opt(P) having_opt(Q) window_clause(R)
                  orderby_opt(Z) limit_opt(L). {
   A = lp_make_select_with_window(ctx, D, W, X, Y, P, Q, R, Z, L);
+  if (A) A->u.select.sqldeep_singular = S;
+}
+
+// sqldeep singular modifier: SELECT/1 marks the SELECT for single-row
+// rendering (no json_group_array wrapping when nested; LIMIT 1 appended).
+%type sqldeep_singular {int}
+sqldeep_singular(A) ::= .                       { A = 0; }
+sqldeep_singular(A) ::= SLASH INTEGER(N).       {
+  /* Only /1 is valid; anything else is a sqldeep error but we accept
+   * the integer at parse time so the diagnostic happens above. */
+  A = (N.n == 1 && N.z && N.z[0] == '1') ? 1 : 0;
 }
 
 // VALUES clause

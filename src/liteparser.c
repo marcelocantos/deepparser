@@ -1689,6 +1689,7 @@ int lp_node_equal(const LpNode *a, const LpNode *b) {
     switch (a->kind) {
         case LP_STMT_SELECT:
             IE(a->u.select.distinct, b->u.select.distinct);
+            IE(a->u.select.sqldeep_singular, b->u.select.sqldeep_singular);
             LE(a->u.select.result_columns, b->u.select.result_columns);
             NE(a->u.select.from, b->u.select.from);
             NE(a->u.select.where, b->u.select.where);
@@ -2515,6 +2516,7 @@ LpNode *lp_node_clone(arena_t *arena, const LpNode *node) {
     switch (node->kind) {
         case LP_STMT_SELECT:
             n->u.select.distinct = node->u.select.distinct;
+            n->u.select.sqldeep_singular = node->u.select.sqldeep_singular;
             n->u.select.result_columns = CL(node->u.select.result_columns);
             n->u.select.from = CN(node->u.select.from);
             n->u.select.where = CN(node->u.select.where);
@@ -3546,6 +3548,8 @@ static void json_node(LpNode *node, LpBuf *out, int depth, int pretty) {
     switch (node->kind) {
         case LP_STMT_SELECT:
             J_BOOL("distinct", node->u.select.distinct);
+            if (node->u.select.sqldeep_singular)
+                J_BOOL("sqldeep_singular", node->u.select.sqldeep_singular);
             J_LIST("result_columns", node->u.select.result_columns);
             J_NODE("from", node->u.select.from);
             J_NODE("where", node->u.select.where);

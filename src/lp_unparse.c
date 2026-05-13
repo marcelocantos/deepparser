@@ -652,7 +652,9 @@ static void sql_select_body(LpNode *node, LpBuf *out) {
     if (node->u.select.with)
         sql_node(node->u.select.with, out);
 
-    lp_buf_puts(out, "SELECT ");
+    lp_buf_puts(out, "SELECT");
+    if (node->u.select.sqldeep_singular) lp_buf_puts(out, "/1");
+    lp_buf_putc(out, ' ');
     if (node->u.select.distinct) lp_buf_puts(out, "DISTINCT ");
 
     /* Result columns */

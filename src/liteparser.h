@@ -310,6 +310,7 @@ struct LpNode {
 
         struct {
             int           distinct;
+            int           sqldeep_singular; /* set by SELECT/1 modifier */
             LpNodeList    result_columns;
             LpNode       *from;
             LpNode       *where;
