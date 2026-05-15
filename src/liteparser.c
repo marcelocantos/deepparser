@@ -1549,6 +1549,25 @@ LpNode *lp_make_sqldeep_path_index(LpParseContext *ctx, LpToken *idx) {
     return n;
 }
 
+LpNode *lp_make_sqldeep_field_recursive(LpParseContext *ctx, LpToken *name) {
+    LpNode *n = lp_node_new(ctx, LP_SQLDEEP_FIELD);
+    if (!n) return NULL;
+    node_pos_tok(n, name);
+    n->u.sqldeep_field.key_form = 4;  /* recursive children marker */
+    n->u.sqldeep_field.key_text = lp_token_dequote(ctx, name);
+    return n;
+}
+
+LpNode *lp_make_sqldeep_recurse(LpParseContext *ctx, LpToken *fk, LpToken *pk) {
+    LpNode *n = lp_node_new(ctx, LP_SQLDEEP_RECURSE);
+    if (!n) return NULL;
+    node_pos_tok(n, fk);
+    n->u.sqldeep_recurse.fk_col = lp_token_dequote(ctx, fk);
+    if (pk && pk->n > 0)
+        n->u.sqldeep_recurse.pk_col = lp_token_dequote(ctx, pk);
+    return n;
+}
+
 /* ================================================================== */
 /*  Name functions                                                     */
 /* ================================================================== */
@@ -1628,6 +1647,7 @@ const char *lp_node_kind_name(LpNodeKind kind) {
         case LP_SQLDEEP_JOIN_PATH:   return "SQLDEEP_JOIN_PATH";
         case LP_SQLDEEP_JOIN_STEP:   return "SQLDEEP_JOIN_STEP";
         case LP_EXPR_SQLDEEP_JSON_PATH: return "EXPR_SQLDEEP_JSON_PATH";
+        case LP_SQLDEEP_RECURSE:     return "SQLDEEP_RECURSE";
         case LP_NODE_KIND_COUNT:     return "NODE_KIND_COUNT";
     }
     return "UNKNOWN";
@@ -2181,6 +2201,11 @@ int lp_node_equal(const LpNode *a, const LpNode *b) {
             LE(a->u.sqldeep_json_path.segments, b->u.sqldeep_json_path.segments);
             break;
 
+        case LP_SQLDEEP_RECURSE:
+            SE(a->u.sqldeep_recurse.fk_col, b->u.sqldeep_recurse.fk_col);
+            SE(a->u.sqldeep_recurse.pk_col, b->u.sqldeep_recurse.pk_col);
+            break;
+
         case LP_NODE_KIND_COUNT:
             break;
     }
@@ -2511,6 +2536,10 @@ static void fix_node(LpNode *node) {
         case LP_EXPR_SQLDEEP_JSON_PATH:
             FIX_NODE(node, node->u.sqldeep_json_path.base);
             FIX_LIST(node, node->u.sqldeep_json_path.segments);
+            break;
+
+        case LP_SQLDEEP_RECURSE:
+            /* no child nodes */
             break;
 
         case LP_NODE_KIND_COUNT:
@@ -3045,6 +3074,11 @@ LpNode *lp_node_clone(arena_t *arena, const LpNode *node) {
             n->u.sqldeep_json_path.segments = CL(node->u.sqldeep_json_path.segments);
             break;
 
+        case LP_SQLDEEP_RECURSE:
+            n->u.sqldeep_recurse.fk_col = CS(node->u.sqldeep_recurse.fk_col);
+            n->u.sqldeep_recurse.pk_col = CS(node->u.sqldeep_recurse.pk_col);
+            break;
+
         case LP_NODE_KIND_COUNT:
             break;
     }
@@ -3403,6 +3437,10 @@ static int walk_children(LpNode *node, LpVisitor *v) {
         case LP_EXPR_SQLDEEP_JSON_PATH:
             WALK_NODE(node->u.sqldeep_json_path.base);
             WALK_LIST(node->u.sqldeep_json_path.segments);
+            break;
+
+        case LP_SQLDEEP_RECURSE:
+            /* no child nodes */
             break;
 
         case LP_NODE_KIND_COUNT:
@@ -4119,6 +4157,11 @@ static void json_node(LpNode *node, LpBuf *out, int depth, int pretty) {
         case LP_EXPR_SQLDEEP_JSON_PATH:
             J_NODE("base", node->u.sqldeep_json_path.base);
             J_LIST("segments", node->u.sqldeep_json_path.segments);
+            break;
+
+        case LP_SQLDEEP_RECURSE:
+            J_STR("fk_col", node->u.sqldeep_recurse.fk_col);
+            J_STR("pk_col", node->u.sqldeep_recurse.pk_col);
             break;
 
         case LP_NODE_KIND_COUNT:

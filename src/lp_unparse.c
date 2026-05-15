@@ -435,6 +435,10 @@ static void sql_expr(LpNode *node, LpBuf *out, int parent_prec) {
                         lp_buf_puts(out, "): ");
                         sql_expr(f->u.sqldeep_field.value, out, 0);
                         break;
+                    case 4: /* recursive children: id : * */
+                        sql_ident(out, f->u.sqldeep_field.key_text);
+                        lp_buf_puts(out, ": *");
+                        break;
                 }
             }
             lp_buf_putc(out, '}');
@@ -740,6 +744,18 @@ static void sql_select_body(LpNode *node, LpBuf *out) {
     if (node->u.select.from && !from_first) {
         lp_buf_puts(out, " FROM ");
         sql_from(node->u.select.from, out);
+    }
+
+    /* sqldeep RECURSE */
+    if (node->u.select.sqldeep_recurse) {
+        LpNode *r = node->u.select.sqldeep_recurse;
+        lp_buf_puts(out, " RECURSE ON (");
+        sql_ident(out, r->u.sqldeep_recurse.fk_col);
+        if (r->u.sqldeep_recurse.pk_col) {
+            lp_buf_puts(out, " = ");
+            sql_ident(out, r->u.sqldeep_recurse.pk_col);
+        }
+        lp_buf_putc(out, ')');
     }
 
     /* WHERE */

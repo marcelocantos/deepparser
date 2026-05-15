@@ -286,6 +286,7 @@ static const LpKeyword lp_keywords[] = {
     { "QUERY",             5,  TK_QUERY },
     { "RAISE",             5,  TK_RAISE },
     { "RANGE",             5,  TK_RANGE },
+    { "RECURSE",           7,  TK_RECURSE },
     { "RECURSIVE",         9,  TK_RECURSIVE },
     { "REFERENCES",       10,  TK_REFERENCES },
     { "REGEXP",            6,  TK_LIKE_KW },

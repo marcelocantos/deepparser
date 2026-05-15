@@ -288,6 +288,7 @@ typedef enum {
     LP_SQLDEEP_JOIN_PATH,
     LP_SQLDEEP_JOIN_STEP,
     LP_EXPR_SQLDEEP_JSON_PATH,
+    LP_SQLDEEP_RECURSE,
 
     LP_NODE_KIND_COUNT
 } LpNodeKind;
@@ -317,6 +318,7 @@ struct LpNode {
             int           sqldeep_from_first;/* set by FROM-first variant */
             LpNodeList    result_columns;
             LpNode       *from;
+            LpNode       *sqldeep_recurse;   /* LP_SQLDEEP_RECURSE node, or NULL */
             LpNode       *where;
             LpNodeList    group_by;
             LpNode       *having;
@@ -714,11 +716,12 @@ struct LpNode {
 
         struct {
             /* key_form: 0=bare (id only), 1=named (id COLON expr),
-             * 2=string ("k" COLON expr), 3=computed ((expr) COLON expr) */
+             * 2=string ("k" COLON expr), 3=computed ((expr) COLON expr),
+             * 4=recursive children (id COLON STAR) */
             int           key_form;
-            char         *key_text;    /* used by forms 0, 1, 2 (dequoted) */
+            char         *key_text;    /* used by forms 0, 1, 2, 4 (dequoted) */
             LpNode       *key_expr;    /* used by form 3 only */
-            LpNode       *value;       /* NULL for form 0 (bare) */
+            LpNode       *value;       /* NULL for forms 0 and 4 */
         } sqldeep_field;
 
         struct {
@@ -742,6 +745,11 @@ struct LpNode {
              * renderer dispatches on kind. */
             LpNodeList    segments;
         } sqldeep_json_path;
+
+        struct {
+            char         *fk_col;      /* required: the FK column name */
+            char         *pk_col;      /* optional explicit PK (default "id") */
+        } sqldeep_recurse;
 
     } u;
 };

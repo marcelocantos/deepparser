@@ -203,6 +203,7 @@ columnname(A) ::= nm(A) typetoken(Y). { lp_add_column(ctx, &A, &Y); }
 // sqldeep tokens
 %token LBRACE RBRACE LBRACKET RBRACKET COLON.
 %token JOIN_ARROW REV_JOIN_ARROW.
+%token RECURSE.
 
 // Fallback tokens
 %fallback ID
@@ -428,17 +429,25 @@ multiselect_op(A) ::= UNION ALL.         {A = LP_COMPOUND_UNION_ALL;}
 multiselect_op(A) ::= EXCEPT.            {A = LP_COMPOUND_EXCEPT;}
 multiselect_op(A) ::= INTERSECT.         {A = LP_COMPOUND_INTERSECT;}
 
-oneselect(A) ::= SELECT sqldeep_singular(S) distinct(D) selcollist(W) from(X) where_opt(Y)
+oneselect(A) ::= SELECT sqldeep_singular(S) distinct(D) selcollist(W) from(X)
+                 sqldeep_recurse_opt(RC) where_opt(Y)
                  groupby_opt(P) having_opt(Q)
                  orderby_opt(Z) limit_opt(L). {
   A = lp_make_select(ctx, D, W, X, Y, P, Q, Z, L);
-  if (A) A->u.select.sqldeep_singular = S;
+  if (A) {
+    A->u.select.sqldeep_singular = S;
+    A->u.select.sqldeep_recurse = RC;
+  }
 }
-oneselect(A) ::= SELECT sqldeep_singular(S) distinct(D) selcollist(W) from(X) where_opt(Y)
+oneselect(A) ::= SELECT sqldeep_singular(S) distinct(D) selcollist(W) from(X)
+                 sqldeep_recurse_opt(RC) where_opt(Y)
                  groupby_opt(P) having_opt(Q) window_clause(R)
                  orderby_opt(Z) limit_opt(L). {
   A = lp_make_select_with_window(ctx, D, W, X, Y, P, Q, R, Z, L);
-  if (A) A->u.select.sqldeep_singular = S;
+  if (A) {
+    A->u.select.sqldeep_singular = S;
+    A->u.select.sqldeep_recurse = RC;
+  }
 }
 
 // sqldeep singular modifier: SELECT/1 marks the SELECT for single-row
@@ -455,22 +464,34 @@ sqldeep_singular(A) ::= SLASH INTEGER(N).       {
 // before SELECT. Equivalent semantics to "SELECT { ... } FROM tbl";
 // the renderer can emit either form based on sqldeep_from_first.
 oneselect(A) ::= FROM seltablist(X) SELECT sqldeep_singular(S) distinct(D) selcollist(W)
-                 where_opt(Y) groupby_opt(P) having_opt(Q)
+                 sqldeep_recurse_opt(RC) where_opt(Y) groupby_opt(P) having_opt(Q)
                  orderby_opt(Z) limit_opt(L). {
   A = lp_make_select(ctx, D, W, X, Y, P, Q, Z, L);
   if (A) {
     A->u.select.sqldeep_singular = S;
     A->u.select.sqldeep_from_first = 1;
+    A->u.select.sqldeep_recurse = RC;
   }
 }
 oneselect(A) ::= FROM seltablist(X) SELECT sqldeep_singular(S) distinct(D) selcollist(W)
-                 where_opt(Y) groupby_opt(P) having_opt(Q) window_clause(R)
+                 sqldeep_recurse_opt(RC) where_opt(Y) groupby_opt(P) having_opt(Q) window_clause(R)
                  orderby_opt(Z) limit_opt(L). {
   A = lp_make_select_with_window(ctx, D, W, X, Y, P, Q, R, Z, L);
   if (A) {
     A->u.select.sqldeep_singular = S;
     A->u.select.sqldeep_from_first = 1;
+    A->u.select.sqldeep_recurse = RC;
   }
+}
+
+// sqldeep RECURSE clause for recursive tree construction
+%type sqldeep_recurse_opt {LpNode*}
+sqldeep_recurse_opt(A) ::= .                                          { A = 0; }
+sqldeep_recurse_opt(A) ::= RECURSE ON LP ids(F) RP.                   {
+  A = lp_make_sqldeep_recurse(ctx, &F, 0);
+}
+sqldeep_recurse_opt(A) ::= RECURSE ON LP ids(F) EQ ids(P) RP.         {
+  A = lp_make_sqldeep_recurse(ctx, &F, &P);
 }
 
 // sqldeep join paths in FROM clause: c->orders o [ON ...] [<-/-> ...]*
@@ -1126,6 +1147,7 @@ sqldeep_object_field(A) ::= idj(K).                    { A = lp_make_sqldeep_fie
 sqldeep_object_field(A) ::= idj(K) COLON expr(V).      { A = lp_make_sqldeep_field_named(ctx, &K, V); }
 sqldeep_object_field(A) ::= STRING(K) COLON expr(V).   { A = lp_make_sqldeep_field_string(ctx, &K, V); }
 sqldeep_object_field(A) ::= LP expr(K) RP COLON expr(V). { A = lp_make_sqldeep_field_computed(ctx, K, V); }
+sqldeep_object_field(A) ::= idj(K) COLON STAR.         { A = lp_make_sqldeep_field_recursive(ctx, &K); }
 
 /////////////////// CREATE INDEX /////////////////////////////
 

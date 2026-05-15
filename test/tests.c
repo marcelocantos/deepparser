@@ -3901,6 +3901,12 @@ static void test_round_trip(void) {
         "SELECT upper((data).name) FROM t",
         "SELECT * FROM t WHERE (data).status = 'active'",
         "SELECT (data).count[0] + 1 FROM t",
+
+        /* RECURSE + recursive children field */
+        "SELECT/1 {id, name, children: *} FROM t RECURSE ON (parent_id) WHERE parent_id IS NULL",
+        "SELECT {id, name, children: *} FROM t RECURSE ON (parent_id)",
+        "SELECT/1 {id, kids: *} FROM nodes RECURSE ON (parent_id = id) WHERE parent_id IS NULL",
+        "SELECT {a, b, sub: *} FROM t RECURSE ON (fk)",
     };
     int n = (int)(sizeof(sqls) / sizeof(sqls[0]));
 
