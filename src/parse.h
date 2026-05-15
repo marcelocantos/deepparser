@@ -147,9 +147,9 @@
 #define TK_SELECT                         147
 #define TK_INTEGER                        148
 #define TK_FROM                           149
-#define TK_VALUES                         150
-#define TK_DISTINCT                       151
-#define TK_DOT                            152
+#define TK_DOT                            150
+#define TK_VALUES                         151
+#define TK_DISTINCT                       152
 #define TK_JOIN                           153
 #define TK_USING                          154
 #define TK_ORDER                          155

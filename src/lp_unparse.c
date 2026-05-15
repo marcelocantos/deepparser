@@ -450,6 +450,24 @@ static void sql_expr(LpNode *node, LpBuf *out, int parent_prec) {
             lp_buf_putc(out, ']');
             break;
 
+        case LP_EXPR_SQLDEEP_JSON_PATH:
+            lp_buf_putc(out, '(');
+            sql_expr(node->u.sqldeep_json_path.base, out, 0);
+            lp_buf_putc(out, ')');
+            for (int i = 0; i < node->u.sqldeep_json_path.segments.count; i++) {
+                LpNode *seg = node->u.sqldeep_json_path.segments.items[i];
+                if (!seg) continue;
+                if (seg->kind == LP_EXPR_LITERAL_INT) {
+                    lp_buf_putc(out, '[');
+                    lp_buf_puts(out, seg->u.literal.value);
+                    lp_buf_putc(out, ']');
+                } else {
+                    lp_buf_putc(out, '.');
+                    sql_ident(out, seg->u.literal.value);
+                }
+            }
+            break;
+
         default:
             /* Non-expression node used in expression context — delegate */
             sql_node(node, out);

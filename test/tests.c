@@ -3892,6 +3892,15 @@ static void test_round_trip(void) {
 
         /* :ident parameter still works after join-arrow tokenizer change */
         "SELECT * FROM t WHERE id = :customer_id",
+
+        /* JSON path: (expr).field[N].sub */
+        "SELECT (data).name FROM t",
+        "SELECT (data).items[0] FROM t",
+        "SELECT (data).items[0].name FROM t",
+        "SELECT (data).a.b.c FROM t",
+        "SELECT upper((data).name) FROM t",
+        "SELECT * FROM t WHERE (data).status = 'active'",
+        "SELECT (data).count[0] + 1 FROM t",
     };
     int n = (int)(sizeof(sqls) / sizeof(sqls[0]));
 

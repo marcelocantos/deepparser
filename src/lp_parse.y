@@ -497,6 +497,28 @@ sqldeep_arrow_step(A) ::= REV_JOIN_ARROW nm(T) as(AL) on_using(N). {
   A = lp_make_sqldeep_join_step(ctx, 0, &T, &AL, N.pOn, N.pUsing);
 }
 
+// sqldeep JSON path: (expr).field[N].sub.deep, etc.
+%type sqldeep_json_path_segs {LpNodeList*}
+%type sqldeep_json_path_seg  {LpNode*}
+
+expr(A) ::= LP expr(X) RP DOT sqldeep_json_path_segs(S). {
+  A = lp_make_sqldeep_json_path(ctx, X, S);
+}
+
+sqldeep_json_path_segs(A) ::= sqldeep_json_path_seg(S). {
+  A = (LpNodeList*)arena_zeroalloc(ctx->arena, sizeof(LpNodeList));
+  if (S) lp_list_append(ctx, A, S);
+}
+sqldeep_json_path_segs(A) ::= sqldeep_json_path_segs(A) DOT sqldeep_json_path_seg(S). {
+  if (S) lp_list_append(ctx, A, S);
+}
+sqldeep_json_path_segs(A) ::= sqldeep_json_path_segs(A) LBRACKET INTEGER(I) RBRACKET. {
+  LpNode *seg = lp_make_sqldeep_path_index(ctx, &I);
+  if (seg) lp_list_append(ctx, A, seg);
+}
+
+sqldeep_json_path_seg(A) ::= ids(N). { A = lp_make_sqldeep_path_name(ctx, &N); }
+
 // VALUES clause
 %type values {LpNode*}
 oneselect(A) ::= values(A).

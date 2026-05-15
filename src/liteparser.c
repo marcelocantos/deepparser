@@ -1521,6 +1521,34 @@ LpNode *lp_make_sqldeep_join_step(LpParseContext *ctx, int forward,
     return n;
 }
 
+LpNode *lp_make_sqldeep_json_path(LpParseContext *ctx, LpNode *base, LpNodeList *segments) {
+    LpNode *n = lp_node_new(ctx, LP_EXPR_SQLDEEP_JSON_PATH);
+    if (!n) return NULL;
+    node_pos_node(n, base);
+    n->u.sqldeep_json_path.base = base;
+    if (segments) n->u.sqldeep_json_path.segments = *segments;
+    return n;
+}
+
+/* JSON path segment helpers: emit a literal string for ".name" forms
+ * and a literal int for "[N]" forms. The path node's renderer dispatches
+ * on kind. */
+LpNode *lp_make_sqldeep_path_name(LpParseContext *ctx, LpToken *name) {
+    LpNode *n = lp_node_new(ctx, LP_EXPR_LITERAL_STRING);
+    if (!n) return NULL;
+    node_pos_tok(n, name);
+    n->u.literal.value = lp_token_dequote(ctx, name);
+    return n;
+}
+
+LpNode *lp_make_sqldeep_path_index(LpParseContext *ctx, LpToken *idx) {
+    LpNode *n = lp_node_new(ctx, LP_EXPR_LITERAL_INT);
+    if (!n) return NULL;
+    node_pos_tok(n, idx);
+    n->u.literal.value = lp_token_str(ctx, idx);
+    return n;
+}
+
 /* ================================================================== */
 /*  Name functions                                                     */
 /* ================================================================== */
@@ -1599,6 +1627,7 @@ const char *lp_node_kind_name(LpNodeKind kind) {
         case LP_SQLDEEP_FIELD:       return "SQLDEEP_FIELD";
         case LP_SQLDEEP_JOIN_PATH:   return "SQLDEEP_JOIN_PATH";
         case LP_SQLDEEP_JOIN_STEP:   return "SQLDEEP_JOIN_STEP";
+        case LP_EXPR_SQLDEEP_JSON_PATH: return "EXPR_SQLDEEP_JSON_PATH";
         case LP_NODE_KIND_COUNT:     return "NODE_KIND_COUNT";
     }
     return "UNKNOWN";
@@ -2147,6 +2176,11 @@ int lp_node_equal(const LpNode *a, const LpNode *b) {
             LE(a->u.sqldeep_join_step.using_cols, b->u.sqldeep_join_step.using_cols);
             break;
 
+        case LP_EXPR_SQLDEEP_JSON_PATH:
+            NE(a->u.sqldeep_json_path.base, b->u.sqldeep_json_path.base);
+            LE(a->u.sqldeep_json_path.segments, b->u.sqldeep_json_path.segments);
+            break;
+
         case LP_NODE_KIND_COUNT:
             break;
     }
@@ -2472,6 +2506,11 @@ static void fix_node(LpNode *node) {
         case LP_SQLDEEP_JOIN_STEP:
             FIX_NODE(node, node->u.sqldeep_join_step.on_expr);
             FIX_LIST(node, node->u.sqldeep_join_step.using_cols);
+            break;
+
+        case LP_EXPR_SQLDEEP_JSON_PATH:
+            FIX_NODE(node, node->u.sqldeep_json_path.base);
+            FIX_LIST(node, node->u.sqldeep_json_path.segments);
             break;
 
         case LP_NODE_KIND_COUNT:
@@ -3001,6 +3040,11 @@ LpNode *lp_node_clone(arena_t *arena, const LpNode *node) {
             n->u.sqldeep_join_step.using_cols = CL(node->u.sqldeep_join_step.using_cols);
             break;
 
+        case LP_EXPR_SQLDEEP_JSON_PATH:
+            n->u.sqldeep_json_path.base = CN(node->u.sqldeep_json_path.base);
+            n->u.sqldeep_json_path.segments = CL(node->u.sqldeep_json_path.segments);
+            break;
+
         case LP_NODE_KIND_COUNT:
             break;
     }
@@ -3354,6 +3398,11 @@ static int walk_children(LpNode *node, LpVisitor *v) {
         case LP_SQLDEEP_JOIN_STEP:
             WALK_NODE(node->u.sqldeep_join_step.on_expr);
             WALK_LIST(node->u.sqldeep_join_step.using_cols);
+            break;
+
+        case LP_EXPR_SQLDEEP_JSON_PATH:
+            WALK_NODE(node->u.sqldeep_json_path.base);
+            WALK_LIST(node->u.sqldeep_json_path.segments);
             break;
 
         case LP_NODE_KIND_COUNT:
@@ -4065,6 +4114,11 @@ static void json_node(LpNode *node, LpBuf *out, int depth, int pretty) {
             J_STR("alias", node->u.sqldeep_join_step.alias);
             J_NODE("on_expr", node->u.sqldeep_join_step.on_expr);
             J_LIST("using_cols", node->u.sqldeep_join_step.using_cols);
+            break;
+
+        case LP_EXPR_SQLDEEP_JSON_PATH:
+            J_NODE("base", node->u.sqldeep_json_path.base);
+            J_LIST("segments", node->u.sqldeep_json_path.segments);
             break;
 
         case LP_NODE_KIND_COUNT:

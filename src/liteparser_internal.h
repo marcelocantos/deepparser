@@ -384,6 +384,9 @@ LpNode *lp_make_sqldeep_join_path(LpParseContext *ctx, LpNode *prefix,
 LpNode *lp_make_sqldeep_join_step(LpParseContext *ctx, int forward,
                                    LpToken *table, LpToken *alias,
                                    LpNode *on_expr, LpNodeList *using_cols);
+LpNode *lp_make_sqldeep_json_path(LpParseContext *ctx, LpNode *base, LpNodeList *segments);
+LpNode *lp_make_sqldeep_path_name(LpParseContext *ctx, LpToken *name);
+LpNode *lp_make_sqldeep_path_index(LpParseContext *ctx, LpToken *idx);
 
 #ifdef __cplusplus
 }

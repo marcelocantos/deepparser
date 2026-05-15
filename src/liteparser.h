@@ -287,6 +287,7 @@ typedef enum {
     LP_SQLDEEP_FIELD,
     LP_SQLDEEP_JOIN_PATH,
     LP_SQLDEEP_JOIN_STEP,
+    LP_EXPR_SQLDEEP_JSON_PATH,
 
     LP_NODE_KIND_COUNT
 } LpNodeKind;
@@ -733,6 +734,14 @@ struct LpNode {
             LpNode       *on_expr;     /* ON expr, or NULL */
             LpNodeList    using_cols;  /* USING (cols), empty if none */
         } sqldeep_join_step;
+
+        struct {
+            LpNode       *base;        /* expression inside the leading (...) */
+            /* segments: each item is either an LP_EXPR_LITERAL_STRING
+             * (".name" form) or an LP_EXPR_LITERAL_INT ("[N]" form);
+             * renderer dispatches on kind. */
+            LpNodeList    segments;
+        } sqldeep_json_path;
 
     } u;
 };
