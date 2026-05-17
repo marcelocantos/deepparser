@@ -204,6 +204,12 @@ columnname(A) ::= nm(A) typetoken(Y). { lp_add_column(ctx, &A, &Y); }
 %token LBRACE RBRACE LBRACKET RBRACKET COLON.
 %token JOIN_ARROW REV_JOIN_ARROW.
 %token RECURSE.
+// Field/element separator inside sqldeep {...} or [...] literals.
+// The tokenizer driver emits this instead of COMMA when at the
+// top level of a brace frame, so that an inner bare-SELECT field
+// value terminates cleanly instead of greedily extending its own
+// FROM-list / ORDER BY across the field boundary.
+%token FIELD_COMMA.
 // sqldeep XML tokens — emitted by the tokenizer driver only when XML
 // state has been entered. XML_LT begins an element (open or nested),
 // XML_END_LT begins a close tag (</), XML_SLASH_GT closes a self-closing
@@ -466,12 +472,17 @@ sqldeep_singular(A) ::= SLASH INTEGER(N).       {
   A = (N.n == 1 && N.z && N.z[0] == '1') ? 1 : 0;
 }
 
-// sqldeep FROM-first variant: "FROM tbl SELECT { ... }" reorders FROM
-// before SELECT. Equivalent semantics to "SELECT { ... } FROM tbl";
-// the renderer can emit either form based on sqldeep_from_first.
-oneselect(A) ::= FROM seltablist(X) SELECT sqldeep_singular(S) distinct(D) selcollist(W)
-                 sqldeep_recurse_opt(RC) where_opt(Y) groupby_opt(P) having_opt(Q)
-                 orderby_opt(Z) limit_opt(L). {
+// sqldeep FROM-first variant: "FROM tbl [WHERE ...] [GROUP BY ...]
+// [HAVING ...] [ORDER BY ...] [LIMIT ...] SELECT { ... }". All filter/
+// sort/limit clauses appear *before* SELECT — sqldeep does not allow
+// any trailing clauses after the projection in this form (the
+// projection terminates the statement). Equivalent semantics to a
+// regular SELECT; the renderer chooses output form via
+// sqldeep_from_first.
+oneselect(A) ::= FROM seltablist(X) where_opt(Y) groupby_opt(P) having_opt(Q)
+                 orderby_opt(Z) limit_opt(L)
+                 SELECT sqldeep_singular(S) distinct(D) selcollist(W)
+                 sqldeep_recurse_opt(RC). {
   A = lp_make_select(ctx, D, W, X, Y, P, Q, Z, L);
   if (A) {
     A->u.select.sqldeep_singular = S;
@@ -479,9 +490,10 @@ oneselect(A) ::= FROM seltablist(X) SELECT sqldeep_singular(S) distinct(D) selco
     A->u.select.sqldeep_recurse = RC;
   }
 }
-oneselect(A) ::= FROM seltablist(X) SELECT sqldeep_singular(S) distinct(D) selcollist(W)
-                 sqldeep_recurse_opt(RC) where_opt(Y) groupby_opt(P) having_opt(Q) window_clause(R)
-                 orderby_opt(Z) limit_opt(L). {
+oneselect(A) ::= FROM seltablist(X) where_opt(Y) groupby_opt(P) having_opt(Q)
+                 window_clause(R) orderby_opt(Z) limit_opt(L)
+                 SELECT sqldeep_singular(S) distinct(D) selcollist(W)
+                 sqldeep_recurse_opt(RC). {
   A = lp_make_select_with_window(ctx, D, W, X, Y, P, Q, R, Z, L);
   if (A) {
     A->u.select.sqldeep_singular = S;
@@ -524,11 +536,12 @@ sqldeep_arrow_step(A) ::= REV_JOIN_ARROW nm(T) as(AL) on_using(N). {
   A = lp_make_sqldeep_join_step(ctx, 0, &T, &AL, N.pOn, N.pUsing);
 }
 
-// sqldeep JSON path: (expr).field[N].sub.deep, etc.
+// sqldeep JSON path: (expr).field[N].sub.deep, (expr)[0], etc.
+// Segments may start with DOT (name) or LBRACKET (index) in any order.
 %type sqldeep_json_path_segs {LpNodeList*}
 %type sqldeep_json_path_seg  {LpNode*}
 
-expr(A) ::= LP expr(X) RP DOT sqldeep_json_path_segs(S). {
+expr(A) ::= LP expr(X) RP sqldeep_json_path_segs(S). {
   A = lp_make_sqldeep_json_path(ctx, X, S);
 }
 
@@ -536,15 +549,14 @@ sqldeep_json_path_segs(A) ::= sqldeep_json_path_seg(S). {
   A = (LpNodeList*)arena_zeroalloc(ctx->arena, sizeof(LpNodeList));
   if (S) lp_list_append(ctx, A, S);
 }
-sqldeep_json_path_segs(A) ::= sqldeep_json_path_segs(A) DOT sqldeep_json_path_seg(S). {
+sqldeep_json_path_segs(A) ::= sqldeep_json_path_segs(A) sqldeep_json_path_seg(S). {
   if (S) lp_list_append(ctx, A, S);
 }
-sqldeep_json_path_segs(A) ::= sqldeep_json_path_segs(A) LBRACKET INTEGER(I) RBRACKET. {
-  LpNode *seg = lp_make_sqldeep_path_index(ctx, &I);
-  if (seg) lp_list_append(ctx, A, seg);
-}
 
-sqldeep_json_path_seg(A) ::= ids(N). { A = lp_make_sqldeep_path_name(ctx, &N); }
+sqldeep_json_path_seg(A) ::= DOT ids(N). { A = lp_make_sqldeep_path_name(ctx, &N); }
+sqldeep_json_path_seg(A) ::= LBRACKET INTEGER(I) RBRACKET. {
+  A = lp_make_sqldeep_path_index(ctx, &I);
+}
 
 // VALUES clause
 %type values {LpNode*}
@@ -1137,9 +1149,20 @@ paren_exprlist(A) ::= LP exprlist(X) RP.  {A = X;}
 %type sqldeep_object_field  {LpNode*}
 
 expr(A) ::= LBRACE RBRACE.                          { A = lp_make_sqldeep_object(ctx, 0); }
-expr(A) ::= LBRACE sqldeep_object_fields(X) RBRACE. { A = lp_make_sqldeep_object(ctx, X); }
+expr(A) ::= LBRACE sqldeep_object_fields(X) RBRACE.             { A = lp_make_sqldeep_object(ctx, X); }
+expr(A) ::= LBRACE sqldeep_object_fields(X) FIELD_COMMA RBRACE. { A = lp_make_sqldeep_object(ctx, X); }
 expr(A) ::= LBRACKET RBRACKET.                      { A = lp_make_sqldeep_array(ctx, 0); }
-expr(A) ::= LBRACKET nexprlist(X) RBRACKET.         { A = lp_make_sqldeep_array(ctx, X); }
+expr(A) ::= LBRACKET sqldeep_array_elements(X) RBRACKET.             { A = lp_make_sqldeep_array(ctx, X); }
+expr(A) ::= LBRACKET sqldeep_array_elements(X) FIELD_COMMA RBRACKET. { A = lp_make_sqldeep_array(ctx, X); }
+
+%type sqldeep_array_elements {LpNodeList*}
+sqldeep_array_elements(A) ::= expr(E). {
+  A = (LpNodeList*)arena_zeroalloc(ctx->arena, sizeof(LpNodeList));
+  if (E) lp_list_append(ctx, A, E);
+}
+sqldeep_array_elements(A) ::= sqldeep_array_elements(A) FIELD_COMMA expr(E). {
+  if (E) lp_list_append(ctx, A, E);
+}
 
 // sqldeep XML element literal: <tag attrs/>  or  <tag attrs>body</tag>.
 //
@@ -1220,7 +1243,7 @@ sqldeep_object_fields(A) ::= sqldeep_object_field(F). {
   A = (LpNodeList*)arena_zeroalloc(ctx->arena, sizeof(LpNodeList));
   if (F) lp_list_append(ctx, A, F);
 }
-sqldeep_object_fields(A) ::= sqldeep_object_fields(A) COMMA sqldeep_object_field(F). {
+sqldeep_object_fields(A) ::= sqldeep_object_fields(A) FIELD_COMMA sqldeep_object_field(F). {
   if (F) lp_list_append(ctx, A, F);
 }
 
@@ -1229,6 +1252,35 @@ sqldeep_object_field(A) ::= idj(K) COLON expr(V).      { A = lp_make_sqldeep_fie
 sqldeep_object_field(A) ::= STRING(K) COLON expr(V).   { A = lp_make_sqldeep_field_string(ctx, &K, V); }
 sqldeep_object_field(A) ::= LP expr(K) RP COLON expr(V). { A = lp_make_sqldeep_field_computed(ctx, K, V); }
 sqldeep_object_field(A) ::= idj(K) COLON STAR.         { A = lp_make_sqldeep_field_recursive(ctx, &K); }
+// Bare-SELECT (or FROM-first / WITH) as a field value, e.g.
+//   { id, address: SELECT { street, city } FROM addresses }
+//   { orders: FROM o WHERE o.cid = c.id SELECT { total } }
+// The parens are optional in sqldeep; we accept both with-parens (via
+// the regular expr → subquery path) and without (this rule).
+sqldeep_object_field(A) ::= idj(K) COLON select(S). {
+  LpNode *val = lp_make_subquery(ctx, S);
+  A = lp_make_sqldeep_field_named(ctx, &K, val);
+}
+sqldeep_object_field(A) ::= STRING(K) COLON select(S). {
+  LpNode *val = lp_make_subquery(ctx, S);
+  A = lp_make_sqldeep_field_string(ctx, &K, val);
+}
+sqldeep_object_field(A) ::= LP expr(K) RP COLON select(S). {
+  LpNode *val = lp_make_subquery(ctx, S);
+  A = lp_make_sqldeep_field_computed(ctx, K, val);
+}
+// Qualified bare field: { sm.repo } or { s.t.col }. Key is the last
+// component; value is the full dotted column ref so the renderer
+// preserves it verbatim. Sqldeep does not allow `a.b: expr` (named
+// field with dotted key), so there's no ambiguity with field 1.
+sqldeep_object_field(A) ::= idj(K1) DOT idj(K2). {
+  LpNode *val = lp_make_column_ref2(ctx, &K1, &K2);
+  A = lp_make_sqldeep_field_qualified(ctx, &K2, val);
+}
+sqldeep_object_field(A) ::= idj(K1) DOT idj(K2) DOT idj(K3). {
+  LpNode *val = lp_make_column_ref3(ctx, &K1, &K2, &K3);
+  A = lp_make_sqldeep_field_qualified(ctx, &K3, val);
+}
 
 /////////////////// CREATE INDEX /////////////////////////////
 

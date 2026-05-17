@@ -415,6 +415,11 @@ static void sql_expr(LpNode *node, LpBuf *out, int parent_prec) {
                 if (i > 0) lp_buf_puts(out, ", ");
                 LpNode *f = node->u.sqldeep_object.fields.items[i];
                 if (!f) continue;
+                /* Bare-SELECT and parenthesised subquery field values
+                 * both parse to LP_EXPR_SUBQUERY in the AST, so we
+                 * cannot distinguish them on output. Always emit the
+                 * parenthesised form — it's unambiguous and round-
+                 * trips regardless of inner commas (e.g. FROM t1, t2). */
                 switch (f->u.sqldeep_field.key_form) {
                     case 0: /* bare */
                         sql_ident(out, f->u.sqldeep_field.key_text);
@@ -438,6 +443,9 @@ static void sql_expr(LpNode *node, LpBuf *out, int parent_prec) {
                     case 4: /* recursive children: id : * */
                         sql_ident(out, f->u.sqldeep_field.key_text);
                         lp_buf_puts(out, ": *");
+                        break;
+                    case 5: /* qualified bare: a.b emitted as the column ref */
+                        sql_expr(f->u.sqldeep_field.value, out, 0);
                         break;
                 }
             }
@@ -765,10 +773,55 @@ static void sql_select_body(LpNode *node, LpBuf *out) {
 
     int from_first = node->u.select.sqldeep_from_first && node->u.select.from;
 
-    /* FROM (when sqldeep FROM-first variant) */
+    /* In sqldeep FROM-first form, all filter/group/order/limit clauses
+     * are emitted *before* SELECT — the projection terminates the
+     * statement. Otherwise they follow the projection in standard
+     * SQL order. */
+
     if (from_first) {
         lp_buf_puts(out, "FROM ");
         sql_from(node->u.select.from, out);
+
+        if (node->u.select.where) {
+            lp_buf_puts(out, " WHERE ");
+            sql_expr(node->u.select.where, out, 0);
+        }
+        if (node->u.select.group_by.count > 0) {
+            lp_buf_puts(out, " GROUP BY ");
+            for (int i = 0; i < node->u.select.group_by.count; i++) {
+                if (i > 0) lp_buf_puts(out, ", ");
+                sql_expr(node->u.select.group_by.items[i], out, 0);
+            }
+        }
+        if (node->u.select.having) {
+            lp_buf_puts(out, " HAVING ");
+            sql_expr(node->u.select.having, out, 0);
+        }
+        if (node->u.select.window_defs.count > 0) {
+            lp_buf_puts(out, " WINDOW ");
+            for (int i = 0; i < node->u.select.window_defs.count; i++) {
+                if (i > 0) lp_buf_puts(out, ", ");
+                LpNode *w = node->u.select.window_defs.items[i];
+                if (w->u.window_def.name) {
+                    sql_ident(out, w->u.window_def.name);
+                    lp_buf_puts(out, " AS (");
+                } else {
+                    lp_buf_putc(out, '(');
+                }
+                sql_window_body(w, out);
+                lp_buf_putc(out, ')');
+            }
+        }
+        if (node->u.select.order_by.count > 0) {
+            lp_buf_puts(out, " ORDER BY ");
+            for (int i = 0; i < node->u.select.order_by.count; i++) {
+                if (i > 0) lp_buf_puts(out, ", ");
+                sql_node(node->u.select.order_by.items[i], out);
+            }
+        }
+        if (node->u.select.limit)
+            sql_node(node->u.select.limit, out);
+
         lp_buf_putc(out, ' ');
     }
 
@@ -792,13 +845,16 @@ static void sql_select_body(LpNode *node, LpBuf *out) {
         }
     }
 
-    /* FROM (when standard SELECT-first order) */
-    if (node->u.select.from && !from_first) {
+    if (from_first) return;  /* All trailing clauses already emitted. */
+
+    /* FROM (standard SELECT-first order) */
+    if (node->u.select.from) {
         lp_buf_puts(out, " FROM ");
         sql_from(node->u.select.from, out);
     }
 
-    /* sqldeep RECURSE */
+    /* sqldeep RECURSE — goes between FROM and WHERE in SELECT-first
+     * form (the only form sqldeep uses RECURSE in). */
     if (node->u.select.sqldeep_recurse) {
         LpNode *r = node->u.select.sqldeep_recurse;
         lp_buf_puts(out, " RECURSE ON (");

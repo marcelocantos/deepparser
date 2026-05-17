@@ -720,9 +720,11 @@ struct LpNode {
         struct {
             /* key_form: 0=bare (id only), 1=named (id COLON expr),
              * 2=string ("k" COLON expr), 3=computed ((expr) COLON expr),
-             * 4=recursive children (id COLON STAR) */
+             * 4=recursive children (id COLON STAR),
+             * 5=qualified bare (a.b or a.b.c — key is last component,
+             *   value is the column-ref node of the full dotted path) */
             int           key_form;
-            char         *key_text;    /* used by forms 0, 1, 2, 4 (dequoted) */
+            char         *key_text;    /* used by forms 0, 1, 2, 4, 5 (dequoted) */
             LpNode       *key_expr;    /* used by form 3 only */
             LpNode       *value;       /* NULL for forms 0 and 4 */
         } sqldeep_field;

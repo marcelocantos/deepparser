@@ -3870,13 +3870,14 @@ static void test_round_trip(void) {
         "SELECT/1 id FROM t WHERE id = 1",
         "SELECT/1 {id, name: full_name} FROM users WHERE id = :id",
 
-        /* FROM-first variant */
+        /* FROM-first variant — all filter/sort/limit clauses come
+         * before SELECT (sqldeep's canonical order). */
         "FROM t SELECT {a, b}",
-        "FROM users SELECT {id, name: full_name} WHERE id = :id",
+        "FROM users WHERE id = :id SELECT {id, name: full_name}",
         "FROM t SELECT [x, y]",
-        "FROM t SELECT/1 {a, b} WHERE id = 1",
+        "FROM t WHERE id = 1 SELECT/1 {a, b}",
         "FROM t1 INNER JOIN t2 ON t1.id = t2.ref SELECT {a: t1.x, b: t2.y}",
-        "FROM users SELECT * WHERE active = 1 ORDER BY name LIMIT 10",
+        "FROM users WHERE active = 1 ORDER BY name LIMIT 10 SELECT *",
 
         /* Join arrows: forward, reverse, chain, bridge */
         "FROM c->orders o SELECT {a, b}",
@@ -3949,6 +3950,37 @@ static void test_round_trip(void) {
         "SELECT 1 FROM t WHERE n < a",
         "SELECT 1 FROM t WHERE x.col < other_col",
         "SELECT count(*) FROM t WHERE id < limit_val",
+
+        /* Qualified bare field: key is the last component */
+        "SELECT {id, sm.repo, sm.topic} FROM t",
+        "SELECT {s.t.col} FROM t",
+        "SELECT {id, sm.repo, label: sm.topic} FROM t",
+
+        /* Trailing commas in object / array literals */
+        "SELECT {id, name,} FROM t",
+        "SELECT {tags: [1, 2, 3,]} FROM t",
+
+        /* Backslash-escaped quote inside double-quoted key */
+        "SELECT {\"say \\\"hello\\\"\": v} FROM t",
+
+        /* Bare SELECT / FROM-first as object field value (no parens) */
+        "SELECT {id, address: SELECT {street, city} FROM addresses WHERE uid = u.id} FROM users u",
+        "SELECT {id, totals: SELECT [total] FROM orders WHERE cid = c.id} FROM customer",
+        "SELECT {id, name, orders: FROM orders o WHERE o.cid = c.id SELECT {total}} FROM customers c",
+        "SELECT {orders: SELECT {orders_id} FROM c->orders} FROM customers c",
+        "SELECT {a: SELECT {x} FROM t1, b: SELECT {y} FROM t2} FROM t",
+
+        /* FROM-first with WHERE/ORDER BY/LIMIT BEFORE SELECT (sqldeep canonical order) */
+        "FROM t WHERE x > 0 SELECT {id}",
+        "FROM t ORDER BY id SELECT {id, name}",
+        "FROM orders WHERE cid = 1 SELECT [total]",
+        "FROM t WHERE x > 0 ORDER BY y LIMIT 10 SELECT *",
+        "FROM t WHERE x > 0 ORDER BY y SELECT id, name",
+
+        /* JSON path starting with [N] (no leading .name segment) */
+        "SELECT (data)[0] FROM t",
+        "SELECT (data)[0].name FROM t",
+        "SELECT (items)[0][1] FROM t",
     };
     int n = (int)(sizeof(sqls) / sizeof(sqls[0]));
 

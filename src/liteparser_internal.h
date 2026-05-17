@@ -89,6 +89,19 @@ typedef struct LpXmlFrame {
     struct LpXmlFrame  *next;
 } LpXmlFrame;
 
+/* Brace frame tracks {...} / [...] literal nesting so the tokenizer
+ * can emit FIELD_COMMA (instead of COMMA) for top-level commas inside
+ * sqldeep object/array literals — the field-boundary form that ends
+ * the inner field-value's SELECT or expression. */
+#define LP_BRACE_FRAME_OBJECT 1
+#define LP_BRACE_FRAME_ARRAY  2
+
+typedef struct LpBraceFrame {
+    int                  type;          /* OBJECT or ARRAY */
+    int                  nest_depth;    /* LP-depth inside this frame */
+    struct LpBraceFrame *next;
+} LpBraceFrame;
+
 /* ------------------------------------------------------------------ */
 /*  Parse context (replaces SQLite's Parse struct)                     */
 /* ------------------------------------------------------------------ */
@@ -121,6 +134,13 @@ typedef struct LpParseContext {
      * when not currently inside any XML element. Managed entirely by
      * the tokenizer driver in lp_tokenize.c. */
     LpXmlFrame *xml_stack;
+
+    /* sqldeep brace lexer state — stack of {...} / [...] literal
+     * frames. When the top frame's nest_depth is 0, a COMMA is
+     * promoted to FIELD_COMMA (field/element separator) so that an
+     * inner bare-SELECT field value terminates instead of greedily
+     * extending FROM-lists, ORDER BY, etc. */
+    LpBraceFrame *brace_stack;
 } LpParseContext;
 
 /* ------------------------------------------------------------------ */
@@ -409,6 +429,8 @@ LpNode *lp_make_sqldeep_json_path(LpParseContext *ctx, LpNode *base, LpNodeList 
 LpNode *lp_make_sqldeep_path_name(LpParseContext *ctx, LpToken *name);
 LpNode *lp_make_sqldeep_path_index(LpParseContext *ctx, LpToken *idx);
 LpNode *lp_make_sqldeep_field_recursive(LpParseContext *ctx, LpToken *name);
+LpNode *lp_make_sqldeep_field_qualified(LpParseContext *ctx, LpToken *last,
+                                         LpNode *column_ref);
 LpNode *lp_make_sqldeep_recurse(LpParseContext *ctx, LpToken *fk, LpToken *pk);
 LpNode *lp_make_sqldeep_xml(LpParseContext *ctx, LpToken *tag,
                              LpNodeList *attrs, LpNodeList *children,

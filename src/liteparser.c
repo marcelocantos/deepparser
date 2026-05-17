@@ -114,13 +114,21 @@ char *lp_token_dequote(LpParseContext *ctx, LpToken *tok) {
         s[inner_len] = '\0';
         return s;
     }
-    /* For ' " ` — strip quotes and unescape doubled quotes */
+    /* For ' " ` — strip quotes and unescape doubled quotes. For
+     * double-quoted identifiers, also unescape `\<any>` (sqldeep
+     * extension matching the tokenizer's lex rule). */
     const char *src = tok->z + 1;
     unsigned int src_len = tok->n - 2; /* skip opening and closing quote */
+    int allow_backslash = (q == '"');
     char *s = (char *)arena_alloc(ctx->arena, src_len + 1);
     if (!s) return NULL;
     unsigned int j = 0;
     for (unsigned int i = 0; i < src_len; i++) {
+        if (allow_backslash && src[i] == '\\' && i + 1 < src_len) {
+            s[j++] = src[i + 1];
+            i++;
+            continue;
+        }
         s[j++] = src[i];
         if (src[i] == q && i + 1 < src_len && src[i + 1] == q) {
             i++; /* skip the doubled quote */
@@ -1555,6 +1563,20 @@ LpNode *lp_make_sqldeep_field_recursive(LpParseContext *ctx, LpToken *name) {
     node_pos_tok(n, name);
     n->u.sqldeep_field.key_form = 4;  /* recursive children marker */
     n->u.sqldeep_field.key_text = lp_token_dequote(ctx, name);
+    return n;
+}
+
+LpNode *lp_make_sqldeep_field_qualified(LpParseContext *ctx, LpToken *last,
+                                         LpNode *column_ref) {
+    /* Qualified bare field: { a.b } or { a.b.c }. Key text is the
+     * last component; value is the full column-ref node so the
+     * renderer emits the dotted source verbatim. */
+    LpNode *n = lp_node_new(ctx, LP_SQLDEEP_FIELD);
+    if (!n) return NULL;
+    node_pos_node(n, column_ref);
+    n->u.sqldeep_field.key_form = 5;
+    n->u.sqldeep_field.key_text = lp_token_dequote(ctx, last);
+    n->u.sqldeep_field.value = column_ref;
     return n;
 }
 

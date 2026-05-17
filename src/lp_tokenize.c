@@ -529,7 +529,16 @@ int lp_get_token(const unsigned char *z, int *tokenType) {
         testcase( delim=='`' );
         testcase( delim=='\'' );
         testcase( delim=='"' );
+        /* sqldeep extension: backslash-escape inside double-quoted
+         * identifiers (e.g. {"say \"hi\"": v}). Single-quoted SQL
+         * string literals retain their standard semantics, so things
+         * like `ESCAPE '\'` still parse correctly. */
+        int allow_backslash = (delim == '"');
         for (i = 1; (c = z[i]) != 0; i++) {
+            if (allow_backslash && c == '\\' && z[i + 1] != 0) {
+                i++;
+                continue;
+            }
             if (c == delim) {
                 if (z[i + 1] == delim) {
                     i++;
@@ -812,6 +821,47 @@ static void xml_pop(LpParseContext *ctx) {
     if (ctx->xml_stack) ctx->xml_stack = ctx->xml_stack->next;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Brace-frame helpers (object/array literal field-comma tracking)    */
+/* ------------------------------------------------------------------ */
+
+static void brace_push(LpParseContext *ctx, int type) {
+    LpBraceFrame *f = (LpBraceFrame *)arena_zeroalloc(ctx->arena, sizeof(LpBraceFrame));
+    if (!f) return;
+    f->type = type;
+    f->next = ctx->brace_stack;
+    ctx->brace_stack = f;
+}
+
+static void brace_pop(LpParseContext *ctx) {
+    if (ctx->brace_stack) ctx->brace_stack = ctx->brace_stack->next;
+}
+
+/* Update brace_stack state for a freshly-emitted token. Returns
+ * the (possibly rewritten) token type — TK_COMMA is promoted to
+ * TK_FIELD_COMMA when emitted at the top level of a brace frame. */
+static int brace_track_token(LpParseContext *ctx, int tt) {
+    LpBraceFrame *top = ctx->brace_stack;
+    if (tt == TK_LBRACE) {
+        brace_push(ctx, LP_BRACE_FRAME_OBJECT);
+    } else if (tt == TK_LBRACKET) {
+        brace_push(ctx, LP_BRACE_FRAME_ARRAY);
+    } else if (tt == TK_RBRACE) {
+        if (top && top->type == LP_BRACE_FRAME_OBJECT) brace_pop(ctx);
+    } else if (tt == TK_RBRACKET) {
+        if (top && top->type == LP_BRACE_FRAME_ARRAY) brace_pop(ctx);
+    } else if (tt == TK_LP) {
+        if (top) top->nest_depth++;
+    } else if (tt == TK_RP) {
+        if (top && top->nest_depth > 0) top->nest_depth--;
+    } else if (tt == TK_COMMA) {
+        if (top && top->nest_depth == 0) {
+            return TK_FIELD_COMMA;
+        }
+    }
+    return tt;
+}
+
 /* True iff `<` immediately after this previous-token kind should be
  * read as binary less-than (i.e. the LHS just ended an expression),
  * not as the start of an XML element. Anything else allows promotion
@@ -848,6 +898,11 @@ static int xml_aware_get_token(LpParseContext *ctx, const char *z,
                                 int prev_last_token) {
     LpXmlFrame *top = ctx->xml_stack;
     int phase = top ? top->phase : 0;
+
+    /* The brace-stack only tracks tokens that belong to the SQL/
+     * expression stream — never the XML body's raw text or its
+     * structural markers. We update it at the end of each non-BODY
+     * path before returning. */
 
     /* ---- BODY phase: scan raw text or recognise <, </, { ---- */
     if (phase == LP_XML_PHASE_BODY) {
@@ -930,6 +985,7 @@ static int xml_aware_get_token(LpParseContext *ctx, const char *z,
                 *tokenType = TK_ID;
             }
         }
+        *tokenType = brace_track_token(ctx, *tokenType);
         return n;
     }
 
@@ -943,14 +999,22 @@ static int xml_aware_get_token(LpParseContext *ctx, const char *z,
             xml_push(ctx, LP_XML_PHASE_TAG_OPEN);
             return 1;
         }
+        /* INTERP tracks its own outer brace_depth so it can pop on the
+         * matching '}'. Inner braces (object literals) also update the
+         * brace_stack via brace_track_token below. */
         if (*tokenType == TK_LBRACE) {
             top->brace_depth++;
         } else if (*tokenType == TK_RBRACE) {
             top->brace_depth--;
             if (top->brace_depth == 0) {
                 xml_pop(ctx);  /* back to BODY (or whatever was beneath) */
+                /* This RBRACE matches the INTERP's outer LBRACE — it
+                 * does NOT belong to the brace_stack (no LBRACE was
+                 * pushed for it). Return without brace tracking. */
+                return n;
             }
         }
+        *tokenType = brace_track_token(ctx, *tokenType);
         return n;
     }
 
@@ -965,6 +1029,7 @@ static int xml_aware_get_token(LpParseContext *ctx, const char *z,
         xml_push(ctx, LP_XML_PHASE_TAG_OPEN);
         return 1;
     }
+    *tokenType = brace_track_token(ctx, *tokenType);
     return n;
 }
 
