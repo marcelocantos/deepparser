@@ -409,6 +409,129 @@ static void sql_expr(LpNode *node, LpBuf *out, int parent_prec) {
             lp_buf_putc(out, ')');
             break;
 
+        case LP_EXPR_SQLDEEP_OBJECT: {
+            lp_buf_putc(out, '{');
+            for (int i = 0; i < node->u.sqldeep_object.fields.count; i++) {
+                if (i > 0) lp_buf_puts(out, ", ");
+                LpNode *f = node->u.sqldeep_object.fields.items[i];
+                if (!f) continue;
+                /* Bare-SELECT and parenthesised subquery field values
+                 * both parse to LP_EXPR_SUBQUERY in the AST, so we
+                 * cannot distinguish them on output. Always emit the
+                 * parenthesised form — it's unambiguous and round-
+                 * trips regardless of inner commas (e.g. FROM t1, t2). */
+                switch (f->u.sqldeep_field.key_form) {
+                    case 0: /* bare */
+                        sql_ident(out, f->u.sqldeep_field.key_text);
+                        break;
+                    case 1: /* named id : expr */
+                        sql_ident(out, f->u.sqldeep_field.key_text);
+                        lp_buf_puts(out, ": ");
+                        sql_expr(f->u.sqldeep_field.value, out, 0);
+                        break;
+                    case 2: /* "string key" : expr */
+                        sql_str_lit(out, f->u.sqldeep_field.key_text);
+                        lp_buf_puts(out, ": ");
+                        sql_expr(f->u.sqldeep_field.value, out, 0);
+                        break;
+                    case 3: /* (expr key) : expr */
+                        lp_buf_putc(out, '(');
+                        sql_expr(f->u.sqldeep_field.key_expr, out, 0);
+                        lp_buf_puts(out, "): ");
+                        sql_expr(f->u.sqldeep_field.value, out, 0);
+                        break;
+                    case 4: /* recursive children: id : * */
+                        sql_ident(out, f->u.sqldeep_field.key_text);
+                        lp_buf_puts(out, ": *");
+                        break;
+                    case 5: /* qualified bare: a.b emitted as the column ref */
+                        sql_expr(f->u.sqldeep_field.value, out, 0);
+                        break;
+                }
+            }
+            lp_buf_putc(out, '}');
+            break;
+        }
+
+        case LP_EXPR_SQLDEEP_ARRAY:
+            lp_buf_putc(out, '[');
+            for (int i = 0; i < node->u.sqldeep_array.elements.count; i++) {
+                if (i > 0) lp_buf_puts(out, ", ");
+                sql_expr(node->u.sqldeep_array.elements.items[i], out, 0);
+            }
+            lp_buf_putc(out, ']');
+            break;
+
+        case LP_EXPR_SQLDEEP_JSON_PATH:
+            lp_buf_putc(out, '(');
+            sql_expr(node->u.sqldeep_json_path.base, out, 0);
+            lp_buf_putc(out, ')');
+            for (int i = 0; i < node->u.sqldeep_json_path.segments.count; i++) {
+                LpNode *seg = node->u.sqldeep_json_path.segments.items[i];
+                if (!seg) continue;
+                if (seg->kind == LP_EXPR_LITERAL_INT) {
+                    lp_buf_putc(out, '[');
+                    lp_buf_puts(out, seg->u.literal.value);
+                    lp_buf_putc(out, ']');
+                } else {
+                    lp_buf_putc(out, '.');
+                    sql_ident(out, seg->u.literal.value);
+                }
+            }
+            break;
+
+        case LP_EXPR_SQLDEEP_XML: {
+            /* <tag attr="v" attr={expr} ...>body</tag>  or  <tag .../> */
+            lp_buf_putc(out, '<');
+            lp_buf_puts(out, node->u.sqldeep_xml.tag);
+            for (int i = 0; i < node->u.sqldeep_xml.attrs.count; i++) {
+                LpNode *a = node->u.sqldeep_xml.attrs.items[i];
+                if (!a) continue;
+                lp_buf_putc(out, ' ');
+                lp_buf_puts(out, a->u.sqldeep_xml_attr.name);
+                if (!a->u.sqldeep_xml_attr.value) continue;  /* boolean attr */
+                lp_buf_putc(out, '=');
+                if (a->u.sqldeep_xml_attr.dynamic) {
+                    lp_buf_putc(out, '{');
+                    sql_expr(a->u.sqldeep_xml_attr.value, out, 0);
+                    lp_buf_putc(out, '}');
+                } else {
+                    /* Static string attribute: render as double-quoted to
+                     * match XML convention. The value is an LP_EXPR_LITERAL_STRING
+                     * whose .value already carries the raw text (no quotes). */
+                    LpNode *v = a->u.sqldeep_xml_attr.value;
+                    lp_buf_putc(out, '"');
+                    if (v && v->kind == LP_EXPR_LITERAL_STRING && v->u.literal.value) {
+                        lp_buf_puts(out, v->u.literal.value);
+                    }
+                    lp_buf_putc(out, '"');
+                }
+            }
+            if (node->u.sqldeep_xml.self_closing) {
+                lp_buf_puts(out, "/>");
+            } else {
+                lp_buf_putc(out, '>');
+                for (int i = 0; i < node->u.sqldeep_xml.children.count; i++) {
+                    LpNode *c = node->u.sqldeep_xml.children.items[i];
+                    if (!c) continue;
+                    if (c->kind == LP_SQLDEEP_XML_TEXT) {
+                        lp_buf_puts(out, c->u.sqldeep_xml_text.text);
+                    } else if (c->kind == LP_EXPR_SQLDEEP_XML) {
+                        sql_expr(c, out, 0);
+                    } else {
+                        /* Interpolation: {expr} */
+                        lp_buf_putc(out, '{');
+                        sql_expr(c, out, 0);
+                        lp_buf_putc(out, '}');
+                    }
+                }
+                lp_buf_puts(out, "</");
+                lp_buf_puts(out, node->u.sqldeep_xml.tag);
+                lp_buf_putc(out, '>');
+            }
+            break;
+        }
+
         default:
             /* Non-expression node used in expression context — delegate */
             sql_node(node, out);
@@ -498,6 +621,43 @@ static void sql_from(LpNode *node, LpBuf *out) {
             }
             break;
         }
+
+        case LP_SQLDEEP_JOIN_PATH: {
+            if (node->u.sqldeep_join_path.prefix) {
+                sql_from(node->u.sqldeep_join_path.prefix, out);
+                lp_buf_puts(out, ", ");
+            }
+            sql_ident(out, node->u.sqldeep_join_path.start_alias);
+            for (int i = 0; i < node->u.sqldeep_join_path.steps.count; i++) {
+                sql_from(node->u.sqldeep_join_path.steps.items[i], out);
+            }
+            break;
+        }
+
+        case LP_SQLDEEP_JOIN_STEP:
+            lp_buf_puts(out, node->u.sqldeep_join_step.forward ? "->" : "<-");
+            sql_ident(out, node->u.sqldeep_join_step.table);
+            if (node->u.sqldeep_join_step.alias) {
+                lp_buf_putc(out, ' ');
+                sql_ident(out, node->u.sqldeep_join_step.alias);
+            }
+            if (node->u.sqldeep_join_step.on_expr) {
+                lp_buf_puts(out, " ON ");
+                sql_expr(node->u.sqldeep_join_step.on_expr, out, 0);
+            }
+            if (node->u.sqldeep_join_step.using_cols.count > 0) {
+                lp_buf_puts(out, " USING (");
+                for (int i = 0; i < node->u.sqldeep_join_step.using_cols.count; i++) {
+                    if (i > 0) lp_buf_puts(out, ", ");
+                    LpNode *col = node->u.sqldeep_join_step.using_cols.items[i];
+                    if (col->kind == LP_EXPR_COLUMN_REF)
+                        sql_ident(out, col->u.column_ref.column);
+                    else
+                        sql_expr(col, out, 0);
+                }
+                lp_buf_putc(out, ')');
+            }
+            break;
 
         default:
             sql_node(node, out);
@@ -611,7 +771,63 @@ static void sql_select_body(LpNode *node, LpBuf *out) {
     if (node->u.select.with)
         sql_node(node->u.select.with, out);
 
-    lp_buf_puts(out, "SELECT ");
+    int from_first = node->u.select.sqldeep_from_first && node->u.select.from;
+
+    /* In sqldeep FROM-first form, all filter/group/order/limit clauses
+     * are emitted *before* SELECT — the projection terminates the
+     * statement. Otherwise they follow the projection in standard
+     * SQL order. */
+
+    if (from_first) {
+        lp_buf_puts(out, "FROM ");
+        sql_from(node->u.select.from, out);
+
+        if (node->u.select.where) {
+            lp_buf_puts(out, " WHERE ");
+            sql_expr(node->u.select.where, out, 0);
+        }
+        if (node->u.select.group_by.count > 0) {
+            lp_buf_puts(out, " GROUP BY ");
+            for (int i = 0; i < node->u.select.group_by.count; i++) {
+                if (i > 0) lp_buf_puts(out, ", ");
+                sql_expr(node->u.select.group_by.items[i], out, 0);
+            }
+        }
+        if (node->u.select.having) {
+            lp_buf_puts(out, " HAVING ");
+            sql_expr(node->u.select.having, out, 0);
+        }
+        if (node->u.select.window_defs.count > 0) {
+            lp_buf_puts(out, " WINDOW ");
+            for (int i = 0; i < node->u.select.window_defs.count; i++) {
+                if (i > 0) lp_buf_puts(out, ", ");
+                LpNode *w = node->u.select.window_defs.items[i];
+                if (w->u.window_def.name) {
+                    sql_ident(out, w->u.window_def.name);
+                    lp_buf_puts(out, " AS (");
+                } else {
+                    lp_buf_putc(out, '(');
+                }
+                sql_window_body(w, out);
+                lp_buf_putc(out, ')');
+            }
+        }
+        if (node->u.select.order_by.count > 0) {
+            lp_buf_puts(out, " ORDER BY ");
+            for (int i = 0; i < node->u.select.order_by.count; i++) {
+                if (i > 0) lp_buf_puts(out, ", ");
+                sql_node(node->u.select.order_by.items[i], out);
+            }
+        }
+        if (node->u.select.limit)
+            sql_node(node->u.select.limit, out);
+
+        lp_buf_putc(out, ' ');
+    }
+
+    lp_buf_puts(out, "SELECT");
+    if (node->u.select.sqldeep_singular) lp_buf_puts(out, "/1");
+    lp_buf_putc(out, ' ');
     if (node->u.select.distinct) lp_buf_puts(out, "DISTINCT ");
 
     /* Result columns */
@@ -629,10 +845,25 @@ static void sql_select_body(LpNode *node, LpBuf *out) {
         }
     }
 
-    /* FROM */
+    if (from_first) return;  /* All trailing clauses already emitted. */
+
+    /* FROM (standard SELECT-first order) */
     if (node->u.select.from) {
         lp_buf_puts(out, " FROM ");
         sql_from(node->u.select.from, out);
+    }
+
+    /* sqldeep RECURSE — goes between FROM and WHERE in SELECT-first
+     * form (the only form sqldeep uses RECURSE in). */
+    if (node->u.select.sqldeep_recurse) {
+        LpNode *r = node->u.select.sqldeep_recurse;
+        lp_buf_puts(out, " RECURSE ON (");
+        sql_ident(out, r->u.sqldeep_recurse.fk_col);
+        if (r->u.sqldeep_recurse.pk_col) {
+            lp_buf_puts(out, " = ");
+            sql_ident(out, r->u.sqldeep_recurse.pk_col);
+        }
+        lp_buf_putc(out, ')');
     }
 
     /* WHERE */
