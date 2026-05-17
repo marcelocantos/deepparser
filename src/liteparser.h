@@ -289,6 +289,9 @@ typedef enum {
     LP_SQLDEEP_JOIN_STEP,
     LP_EXPR_SQLDEEP_JSON_PATH,
     LP_SQLDEEP_RECURSE,
+    LP_EXPR_SQLDEEP_XML,
+    LP_SQLDEEP_XML_ATTR,
+    LP_SQLDEEP_XML_TEXT,
 
     LP_NODE_KIND_COUNT
 } LpNodeKind;
@@ -750,6 +753,26 @@ struct LpNode {
             char         *fk_col;      /* required: the FK column name */
             char         *pk_col;      /* optional explicit PK (default "id") */
         } sqldeep_recurse;
+
+        struct {
+            char         *tag;         /* tag name, may contain ':' and '.' */
+            LpNodeList    attrs;       /* LP_SQLDEEP_XML_ATTR nodes */
+            /* children: LP_SQLDEEP_XML_TEXT, LP_EXPR_SQLDEEP_XML,
+             * or any other expression node (treated as an
+             * interpolated {expr}). */
+            LpNodeList    children;
+            int           self_closing; /* 1 for <tag/>, 0 for <tag></tag> */
+        } sqldeep_xml;
+
+        struct {
+            char         *name;
+            LpNode       *value;       /* NULL for boolean attribute */
+            int           dynamic;     /* 1 = {expr}, 0 = "static" */
+        } sqldeep_xml_attr;
+
+        struct {
+            char         *text;        /* raw body text, exact source bytes */
+        } sqldeep_xml_text;
 
     } u;
 };

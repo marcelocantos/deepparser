@@ -69,11 +69,25 @@ Token disambiguation:
 
 - `->` followed by ident → `JOIN_ARROW`; followed by string/expr →
   binary `LP_OP_PTR`.
-- `<` followed by ident → `XML_LT`; otherwise comparison `LT`.
+- `<` followed by ident-start → `XML_LT`, **unless** the previous token
+  ended an expression (TK_ID, INTEGER, RP, RBRACE, etc.). Exception:
+  the sqldeep singular modifier `SELECT/1` ends with INTEGER but a
+  result-column expression follows, so the `SLASH INTEGER` prefix is
+  whitelisted for XML promotion. This means `WHERE n < a` still parses
+  as binary `LT`; `SELECT <div>x</div>` parses as XML.
 - `/` after `SELECT` → `SLASH_ONE` if followed by `1`; otherwise
   divide.
 - `[` is sqldeep array start (SQLite bracketed-identifier lexing
   disabled — non-portable, not a sqldeep target).
+- XML body context is tracked via an `LpXmlFrame` stack on the parse
+  context. In `BODY` phase the tokenizer emits `XML_TEXT` for raw text
+  up to the next `<` or `{`. `</` → `XML_END_LT`. In `TAG_OPEN` /
+  `TAG_CLOSE` phase `>` → `XML_GT`, `/>` → `XML_SLASH_GT`, `:` →
+  `COLON` (namespace separator, not `:name` variable), and any
+  alpha-start token is forced to `TK_ID` so that SQL keywords like
+  `TABLE` can appear as tag or attribute names. `{` inside `BODY`
+  pushes an `INTERP` frame; the tokenizer tracks brace depth so
+  nested object literals (`{{ ... }}`) close correctly.
 
 ## Round-trip
 

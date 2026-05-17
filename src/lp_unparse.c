@@ -472,6 +472,58 @@ static void sql_expr(LpNode *node, LpBuf *out, int parent_prec) {
             }
             break;
 
+        case LP_EXPR_SQLDEEP_XML: {
+            /* <tag attr="v" attr={expr} ...>body</tag>  or  <tag .../> */
+            lp_buf_putc(out, '<');
+            lp_buf_puts(out, node->u.sqldeep_xml.tag);
+            for (int i = 0; i < node->u.sqldeep_xml.attrs.count; i++) {
+                LpNode *a = node->u.sqldeep_xml.attrs.items[i];
+                if (!a) continue;
+                lp_buf_putc(out, ' ');
+                lp_buf_puts(out, a->u.sqldeep_xml_attr.name);
+                if (!a->u.sqldeep_xml_attr.value) continue;  /* boolean attr */
+                lp_buf_putc(out, '=');
+                if (a->u.sqldeep_xml_attr.dynamic) {
+                    lp_buf_putc(out, '{');
+                    sql_expr(a->u.sqldeep_xml_attr.value, out, 0);
+                    lp_buf_putc(out, '}');
+                } else {
+                    /* Static string attribute: render as double-quoted to
+                     * match XML convention. The value is an LP_EXPR_LITERAL_STRING
+                     * whose .value already carries the raw text (no quotes). */
+                    LpNode *v = a->u.sqldeep_xml_attr.value;
+                    lp_buf_putc(out, '"');
+                    if (v && v->kind == LP_EXPR_LITERAL_STRING && v->u.literal.value) {
+                        lp_buf_puts(out, v->u.literal.value);
+                    }
+                    lp_buf_putc(out, '"');
+                }
+            }
+            if (node->u.sqldeep_xml.self_closing) {
+                lp_buf_puts(out, "/>");
+            } else {
+                lp_buf_putc(out, '>');
+                for (int i = 0; i < node->u.sqldeep_xml.children.count; i++) {
+                    LpNode *c = node->u.sqldeep_xml.children.items[i];
+                    if (!c) continue;
+                    if (c->kind == LP_SQLDEEP_XML_TEXT) {
+                        lp_buf_puts(out, c->u.sqldeep_xml_text.text);
+                    } else if (c->kind == LP_EXPR_SQLDEEP_XML) {
+                        sql_expr(c, out, 0);
+                    } else {
+                        /* Interpolation: {expr} */
+                        lp_buf_putc(out, '{');
+                        sql_expr(c, out, 0);
+                        lp_buf_putc(out, '}');
+                    }
+                }
+                lp_buf_puts(out, "</");
+                lp_buf_puts(out, node->u.sqldeep_xml.tag);
+                lp_buf_putc(out, '>');
+            }
+            break;
+        }
+
         default:
             /* Non-expression node used in expression context — delegate */
             sql_node(node, out);

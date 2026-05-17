@@ -795,6 +795,179 @@ static void advance_pos(LpSrcPos *pos, const char *p, int n) {
     }
 }
 
+/* ------------------------------------------------------------------ */
+/*  XML lexer-state helpers                                            */
+/* ------------------------------------------------------------------ */
+
+static LpXmlFrame *xml_push(LpParseContext *ctx, int phase) {
+    LpXmlFrame *f = (LpXmlFrame *)arena_zeroalloc(ctx->arena, sizeof(LpXmlFrame));
+    if (!f) return NULL;
+    f->phase = phase;
+    f->next = ctx->xml_stack;
+    ctx->xml_stack = f;
+    return f;
+}
+
+static void xml_pop(LpParseContext *ctx) {
+    if (ctx->xml_stack) ctx->xml_stack = ctx->xml_stack->next;
+}
+
+/* True iff `<` immediately after this previous-token kind should be
+ * read as binary less-than (i.e. the LHS just ended an expression),
+ * not as the start of an XML element. Anything else allows promotion
+ * to XML_LT when the next char is an ident-start.
+ *
+ * Special case: the sqldeep `SELECT/1` singular modifier ends with
+ * TK_INTEGER but is followed by a result-column expression — so when
+ * the prev-prev token is TK_SLASH right after TK_SELECT, allow XML. */
+static int prev_token_ends_expression(int t, int prev) {
+    if (t == TK_INTEGER && prev == TK_SLASH) return 0;
+    switch (t) {
+        case TK_ID:
+        case TK_INTEGER:
+        case TK_FLOAT:
+        case TK_STRING:
+        case TK_BLOB:
+        case TK_NULL:
+        case TK_RP:
+        case TK_RBRACKET:
+        case TK_RBRACE:
+        case TK_VARIABLE:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+/* Fetch the next raw token, applying XML-mode state transitions. The
+ * returned tokenType / n have already been adjusted for XML context;
+ * the caller does not need to re-check ctx->xml_stack. Returns 0 if
+ * we're at end of input (caller uses sentinel handling). */
+static int xml_aware_get_token(LpParseContext *ctx, const char *z,
+                                int *tokenType, int last_token,
+                                int prev_last_token) {
+    LpXmlFrame *top = ctx->xml_stack;
+    int phase = top ? top->phase : 0;
+
+    /* ---- BODY phase: scan raw text or recognise <, </, { ---- */
+    if (phase == LP_XML_PHASE_BODY) {
+        unsigned char c0 = (unsigned char)z[0];
+        if (c0 == 0) {
+            *tokenType = TK_ILLEGAL;
+            return 0;
+        }
+        if (c0 == '<') {
+            if (z[1] == '/') {
+                *tokenType = TK_XML_END_LT;
+                /* Stay on the same XML frame but switch phase: the next
+                 * tokens are the close-tag's name and the closing >. */
+                top->phase = LP_XML_PHASE_TAG_CLOSE;
+                return 2;
+            }
+            if (lp_is_ident_start((unsigned char)z[1])) {
+                /* Nested element open: push a new frame. */
+                *tokenType = TK_XML_LT;
+                xml_push(ctx, LP_XML_PHASE_TAG_OPEN);
+                return 1;
+            }
+            /* Stray '<' in XML body — illegal token; surface as error. */
+            *tokenType = TK_ILLEGAL;
+            return 1;
+        }
+        if (c0 == '{') {
+            *tokenType = TK_LBRACE;
+            LpXmlFrame *f = xml_push(ctx, LP_XML_PHASE_INTERP);
+            if (f) f->brace_depth = 1;
+            return 1;
+        }
+        /* Scan raw text until '<' or '{' or EOF. */
+        int len = 0;
+        while (z[len] && z[len] != '<' && z[len] != '{') len++;
+        *tokenType = TK_XML_TEXT;
+        return len;
+    }
+
+    /* ---- TAG_OPEN / TAG_CLOSE: SQL tokenizer with > and /> overrides ---- */
+    if (phase == LP_XML_PHASE_TAG_OPEN || phase == LP_XML_PHASE_TAG_CLOSE) {
+        /* In a tag context, ':' is a namespace separator (e.g.
+         * `<ui:Table.Cell>`). Outside XML it would lex as TK_VARIABLE
+         * (`:name`); force the COLON-form here. */
+        if (z[0] == ':' && lp_is_ident_start((unsigned char)z[1])) {
+            *tokenType = TK_COLON;
+            return 1;
+        }
+        int n = lp_get_token((const unsigned char *)z, tokenType);
+        if (*tokenType == TK_GT) {
+            *tokenType = TK_XML_GT;
+            if (phase == LP_XML_PHASE_TAG_OPEN) {
+                top->phase = LP_XML_PHASE_BODY;
+            } else {
+                xml_pop(ctx);  /* end of close tag — element done */
+            }
+            return n;
+        }
+        if (*tokenType == TK_SLASH && z[n] == '>') {
+            /* '/>': only meaningful in TAG_OPEN (self-closing). In
+             * TAG_CLOSE this would be invalid XML; let it tokenize as
+             * SLASH and let the grammar reject it. */
+            if (phase == LP_XML_PHASE_TAG_OPEN) {
+                *tokenType = TK_XML_SLASH_GT;
+                xml_pop(ctx);
+                return n + 1;
+            }
+        }
+        /* In a tag context, any identifier-shaped lexeme (alpha-start)
+         * is treated as TK_ID — SQL keywords like TABLE, SELECT, etc.
+         * are legitimate tag/attribute names here. Non-alpha tokens
+         * (operators, literals, braces) keep their natural type. */
+        if (n > 0) {
+            unsigned char c0 = (unsigned char)z[0];
+            int is_alpha_start = (c0 == '_' ||
+                                  (c0 >= 'a' && c0 <= 'z') ||
+                                  (c0 >= 'A' && c0 <= 'Z') ||
+                                  c0 >= 0x80);
+            if (is_alpha_start && *tokenType != TK_ID) {
+                *tokenType = TK_ID;
+            }
+        }
+        return n;
+    }
+
+    /* ---- INTERP: SQL tokenizer with brace tracking and nested XML ---- */
+    if (phase == LP_XML_PHASE_INTERP) {
+        int n = lp_get_token((const unsigned char *)z, tokenType);
+        if (*tokenType == TK_LT
+            && lp_is_ident_start((unsigned char)z[1])
+            && !prev_token_ends_expression(last_token, prev_last_token)) {
+            *tokenType = TK_XML_LT;
+            xml_push(ctx, LP_XML_PHASE_TAG_OPEN);
+            return 1;
+        }
+        if (*tokenType == TK_LBRACE) {
+            top->brace_depth++;
+        } else if (*tokenType == TK_RBRACE) {
+            top->brace_depth--;
+            if (top->brace_depth == 0) {
+                xml_pop(ctx);  /* back to BODY (or whatever was beneath) */
+            }
+        }
+        return n;
+    }
+
+    /* ---- Plain SQL: promote '<' followed by ident to XML_LT, but only
+     * when the previous token did not complete an expression (otherwise
+     * `WHERE n < a` would be misread as the start of an XML element). */
+    int n = lp_get_token((const unsigned char *)z, tokenType);
+    if (*tokenType == TK_LT
+        && lp_is_ident_start((unsigned char)z[1])
+        && !prev_token_ends_expression(last_token, prev_last_token)) {
+        *tokenType = TK_XML_LT;
+        xml_push(ctx, LP_XML_PHASE_TAG_OPEN);
+        return 1;
+    }
+    return n;
+}
+
 /* Declare the Lemon-generated parser interface */
 extern void *lp_ParserAlloc(void *(*)(size_t), LpParseContext *);
 extern void  lp_ParserFree(void *, void (*)(void *));
@@ -815,16 +988,25 @@ static int lp_parse_internal(const char *sql, arena_t *arena,
     if (!parser) return -1;
 
     int lastTokenParsed = -1;
+    int prevLastTokenParsed = -1;
     const char *z = sql;
 
     while (1) {
         int tokenType;
-        int n = lp_get_token((const unsigned char *)z, &tokenType);
+        int n = xml_aware_get_token(ctx, z, &tokenType, lastTokenParsed,
+                                     prevLastTokenParsed);
+
+        /* In XML BODY phase the tokenizer emits TK_XML_TEXT exactly as
+         * scanned (including spaces, comments, and newlines) — never
+         * filter those out, since the text is part of the AST. */
+        int in_xml_body = ctx->xml_stack
+            && ctx->xml_stack->phase == LP_XML_PHASE_BODY
+            && tokenType == TK_XML_TEXT;
 
         /* Handle high-value tokens: WINDOW, OVER, FILTER, SPACE, COMMENT,
         ** ILLEGAL, QNUMBER.  These all have token codes >= TK_WINDOW in the
         ** Lemon grammar (arranged so they sort last). */
-        if (tokenType >= TK_WINDOW) {
+        if (!in_xml_body && tokenType >= TK_WINDOW) {
             if (tokenType == TK_SPACE) {
                 advance_pos(&ctx->cur_pos, z, n);
                 z += n;
@@ -874,6 +1056,7 @@ static int lp_parse_internal(const char *sql, arena_t *arena,
         token.pos = ctx->cur_pos;
 
         lp_Parser(parser, tokenType, token);
+        prevLastTokenParsed = lastTokenParsed;
         lastTokenParsed = tokenType;
         advance_pos(&ctx->cur_pos, z, n);
         z += n;

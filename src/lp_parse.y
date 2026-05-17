@@ -204,6 +204,12 @@ columnname(A) ::= nm(A) typetoken(Y). { lp_add_column(ctx, &A, &Y); }
 %token LBRACE RBRACE LBRACKET RBRACKET COLON.
 %token JOIN_ARROW REV_JOIN_ARROW.
 %token RECURSE.
+// sqldeep XML tokens — emitted by the tokenizer driver only when XML
+// state has been entered. XML_LT begins an element (open or nested),
+// XML_END_LT begins a close tag (</), XML_SLASH_GT closes a self-closing
+// open tag (/>), XML_GT ends an open or close tag (>), XML_TEXT is a
+// chunk of raw body text up to the next < or {.
+%token XML_LT XML_END_LT XML_SLASH_GT XML_GT XML_TEXT.
 
 // Fallback tokens
 %fallback ID
@@ -1134,6 +1140,81 @@ expr(A) ::= LBRACE RBRACE.                          { A = lp_make_sqldeep_object
 expr(A) ::= LBRACE sqldeep_object_fields(X) RBRACE. { A = lp_make_sqldeep_object(ctx, X); }
 expr(A) ::= LBRACKET RBRACKET.                      { A = lp_make_sqldeep_array(ctx, 0); }
 expr(A) ::= LBRACKET nexprlist(X) RBRACKET.         { A = lp_make_sqldeep_array(ctx, X); }
+
+// sqldeep XML element literal: <tag attrs/>  or  <tag attrs>body</tag>.
+//
+// Tokenizer driver enters TAG_OPEN phase on XML_LT, transitions to BODY
+// on XML_GT (open tag), to TAG_CLOSE on XML_END_LT, and pops on XML_GT
+// (close tag) or XML_SLASH_GT (self-close). Tag names may include '.'
+// and ':' so we accumulate them via xml_tag_name; the LpToken result
+// spans the full source range.
+%type xml_tag_name {LpToken}
+xml_tag_name(A) ::= ids(A).
+xml_tag_name(A) ::= xml_tag_name(A) DOT ids(B).   { A.n = (int)(B.z + B.n - A.z); }
+xml_tag_name(A) ::= xml_tag_name(A) COLON ids(B). { A.n = (int)(B.z + B.n - A.z); }
+
+%type xml_attrs    {LpNodeList*}
+%type xml_attr     {LpNode*}
+%type xml_children {LpNodeList*}
+%type xml_child    {LpNode*}
+
+xml_attrs(A) ::= . {
+  A = (LpNodeList*)arena_zeroalloc(ctx->arena, sizeof(LpNodeList));
+}
+xml_attrs(A) ::= xml_attrs(A) xml_attr(AT). {
+  if (AT) lp_list_append(ctx, A, AT);
+}
+
+xml_attr(A) ::= ids(N). {
+  /* Boolean attribute: <input disabled/> */
+  A = lp_make_sqldeep_xml_attr(ctx, &N, NULL, 0);
+}
+xml_attr(A) ::= ids(N) EQ ids(V). {
+  /* Static attribute: name="value" or name='value' or name=bareword.
+   * V holds the source token; lp_make_literal_string dequotes if needed. */
+  LpNode *val = lp_make_literal_string(ctx, &V);
+  A = lp_make_sqldeep_xml_attr(ctx, &N, val, 0);
+}
+xml_attr(A) ::= ids(N) EQ LBRACE expr(V) RBRACE. {
+  /* Dynamic attribute: name={expr} */
+  A = lp_make_sqldeep_xml_attr(ctx, &N, V, 1);
+}
+
+xml_children(A) ::= . {
+  A = (LpNodeList*)arena_zeroalloc(ctx->arena, sizeof(LpNodeList));
+}
+xml_children(A) ::= xml_children(A) xml_child(C). {
+  if (C) lp_list_append(ctx, A, C);
+}
+
+xml_child(A) ::= XML_TEXT(T). {
+  A = lp_make_sqldeep_xml_text(ctx, &T);
+}
+xml_child(A) ::= xml_element(E). { A = E; }
+xml_child(A) ::= LBRACE expr(E) RBRACE. {
+  /* Interpolation: store the expression directly. The unparser
+   * distinguishes children by node kind (TEXT vs XML vs anything-else
+   * = interpolation), so no wrapper node is needed. */
+  A = E;
+}
+xml_child(A) ::= LBRACE select(S) RBRACE. {
+  /* Bare-SELECT interpolation: {SELECT ... FROM t}. Wrap in a subquery
+   * node so the child is uniformly an expression. The unparser emits it
+   * as {...} like any other interpolation. */
+  A = lp_make_subquery(ctx, S);
+}
+
+%type xml_element {LpNode*}
+xml_element(A) ::= XML_LT xml_tag_name(T) xml_attrs(AS) XML_SLASH_GT. {
+  A = lp_make_sqldeep_xml(ctx, &T, AS, 0, 1);
+}
+xml_element(A) ::= XML_LT xml_tag_name(T) xml_attrs(AS) XML_GT xml_children(CH)
+                     XML_END_LT xml_tag_name(CT) XML_GT. {
+  lp_check_xml_close_tag(ctx, &T, &CT);
+  A = lp_make_sqldeep_xml(ctx, &T, AS, CH, 0);
+}
+
+expr(A) ::= xml_element(E). { A = E; }
 
 sqldeep_object_fields(A) ::= sqldeep_object_field(F). {
   A = (LpNodeList*)arena_zeroalloc(ctx->arena, sizeof(LpNodeList));

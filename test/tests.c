@@ -3907,6 +3907,48 @@ static void test_round_trip(void) {
         "SELECT {id, name, children: *} FROM t RECURSE ON (parent_id)",
         "SELECT/1 {id, kids: *} FROM nodes RECURSE ON (parent_id = id) WHERE parent_id IS NULL",
         "SELECT {a, b, sub: *} FROM t RECURSE ON (fk)",
+
+        /* XML element literals — static, self-closing, nested, namespaced */
+        "SELECT <div/> FROM t",
+        "SELECT <div></div> FROM t",
+        "SELECT <div>hello</div> FROM t",
+        "SELECT <br/> FROM t",
+        "SELECT <input disabled/> FROM t",
+        "SELECT <a href=\"/x\">click</a> FROM t",
+        "SELECT <div class=\"card\" id=\"top\">x</div> FROM t",
+        "SELECT <ui:Table.Cell>x</ui:Table.Cell> FROM t",
+        "SELECT <div><span>x</span></div> FROM t",
+        "SELECT <ol><li>a</li><li>b</li></ol> FROM t",
+
+        /* XML interpolation */
+        "SELECT <div>{name}</div> FROM t",
+        "SELECT <a href={url}>click</a> FROM t",
+        "SELECT <div class={cls}>{body}</div> FROM t",
+        "SELECT <span>before {x} after</span> FROM t",
+
+        /* XML interpolation with SQL constructs inside */
+        "SELECT <td>{name + 1}</td> FROM t",
+        "SELECT <span>{upper(name)}</span> FROM t",
+        "SELECT <li>{(data).field}</li> FROM t",
+        "SELECT <td>{{name, qty}}</td> FROM t",
+        "SELECT <ul>{SELECT <li>{name}</li> FROM t} list</ul> FROM t",
+        "SELECT <p>{SELECT/1 <span>{x}</span> FROM t}</p> FROM t",
+
+        /* XML inside JSON object value */
+        "SELECT {card: <div>{name}</div>} FROM t",
+        "SELECT {label: <span class=\"hi\">x</span>} FROM t",
+
+        /* jsonml / jsx wrappers (function-call form) */
+        "SELECT jsonml(<div class=\"card\">{name}</div>) FROM t",
+        "SELECT jsx(<Graph data={{x, y}} label=\"Sales\"/>) FROM t",
+        "SELECT jsx(<ul>{SELECT <li>{name}</li> FROM t}</ul>) FROM t",
+
+        /* Comparison operators still tokenize as binary LT — XML
+         * promotion is suppressed when the previous token completes
+         * an expression. */
+        "SELECT 1 FROM t WHERE n < a",
+        "SELECT 1 FROM t WHERE x.col < other_col",
+        "SELECT count(*) FROM t WHERE id < limit_val",
     };
     int n = (int)(sizeof(sqls) / sizeof(sqls[0]));
 
