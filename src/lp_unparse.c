@@ -16,33 +16,24 @@
 /*  Identifier and literal output helpers                              */
 /* ================================================================== */
 
-/* SQL keywords that must be quoted when used as identifiers */
+/* SQL keywords that must be quoted to be usable as identifiers. This
+ * list intentionally tracks only words that SQLite truly reserves —
+ * the broader keyword set is accepted as an identifier via the
+ * `%fallback ID` rule in lp_parse.y, so quoting them on output would
+ * produce noisy `"key"`, `"action"`, etc. for ordinary column names. */
 static int is_sql_keyword(const char *s) {
-    static const char *const keywords[] = {
-        "ABORT","ACTION","ADD","AFTER","ALL","ALTER","ALWAYS","ANALYZE","AND",
-        "AS","ASC","ATTACH","AUTOINCREMENT","BEFORE","BEGIN","BETWEEN","BY",
-        "CASCADE","CASE","CAST","CHECK","COLLATE","COLUMN","COMMIT","CONFLICT",
-        "CONSTRAINT","CREATE","CROSS","CURRENT","CURRENT_DATE","CURRENT_TIME",
-        "CURRENT_TIMESTAMP","DATABASE","DEFAULT","DEFERRABLE","DEFERRED",
-        "DELETE","DESC","DETACH","DISTINCT","DO","DROP","EACH","ELSE","END",
-        "ESCAPE","EXCEPT","EXCLUDE","EXCLUSIVE","EXISTS","EXPLAIN","FAIL",
-        "FILTER","FIRST","FOLLOWING","FOR","FOREIGN","FROM","FULL","GENERATED",
-        "GLOB","GROUP","GROUPS","HAVING","IF","IGNORE","IMMEDIATE","IN","INDEX",
-        "INDEXED","INITIALLY","INNER","INSERT","INSTEAD","INTERSECT","INTO",
-        "IS","ISNULL","JOIN","KEY","LAST","LEFT","LIKE","LIMIT","MATCH",
-        "MATERIALIZED","NATURAL","NO","NOT","NOTHING","NOTNULL","NULL","NULLS",
-        "OF","OFFSET","ON","OR","ORDER","OTHERS","OUTER","OVER","PARTITION",
-        "PLAN","PRAGMA","PRECEDING","PRIMARY","QUERY","RAISE","RANGE",
-        "RECURSIVE","REFERENCES","REGEXP","REINDEX","RELEASE","RENAME",
-        "REPLACE","RESTRICT","RETURNING","RIGHT","ROLLBACK","ROW","ROWS",
-        "SAVEPOINT","SELECT","SET","TABLE","TEMP","TEMPORARY","THEN","TIES",
-        "TO","TRANSACTION","TRIGGER","UNBOUNDED","UNION","UNIQUE","UPDATE",
-        "USING","VACUUM","VALUES","VIEW","VIRTUAL","WHEN","WHERE","WINDOW",
-        "WITH","WITHIN","WITHOUT","FALSE","TRUE",
+    static const char *const reserved[] = {
+        "ALL","AND","AS","BETWEEN","CASE","CHECK","COLLATE","COMMIT",
+        "CONSTRAINT","CREATE","DEFAULT","DEFERRABLE","DELETE","DISTINCT",
+        "DROP","ELSE","ESCAPE","EXCEPT","EXISTS","FOREIGN","FROM","GROUP",
+        "HAVING","IN","INDEX","INSERT","INTERSECT","INTO","IS","ISNULL",
+        "JOIN","LIMIT","NOT","NOTNULL","NULL","ON","OR","ORDER","PRIMARY",
+        "REFERENCES","SELECT","SET","TABLE","THEN","TRANSACTION","UNION",
+        "UNIQUE","UPDATE","USING","VALUES","WHEN","WHERE",
     };
-    int n = sizeof(keywords)/sizeof(keywords[0]);
+    int n = sizeof(reserved)/sizeof(reserved[0]);
     for (int i = 0; i < n; i++) {
-        if (strcasecmp(s, keywords[i]) == 0) return 1;
+        if (strcasecmp(s, reserved[i]) == 0) return 1;
     }
     return 0;
 }
