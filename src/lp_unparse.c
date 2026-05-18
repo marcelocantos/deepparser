@@ -54,6 +54,9 @@ static int needs_quoting(const char *s) {
     for (const char *p = s + 1; *p; p++) {
         if (!(isalnum((unsigned char)*p) || *p == '_')) return 1;
     }
+    /* `true` and `false` parse as identifiers in SQLite's grammar but
+     * are universally readable as boolean literals; emit unquoted. */
+    if (strcasecmp(s, "true") == 0 || strcasecmp(s, "false") == 0) return 0;
     if (is_sql_keyword(s)) return 1;
     return 0;
 }
@@ -153,8 +156,10 @@ static const char *binop_sql(LpBinOp op) {
         case LP_OP_GLOB:    return " GLOB ";
         case LP_OP_MATCH:   return " MATCH ";
         case LP_OP_REGEXP:  return " REGEXP ";
-        case LP_OP_PTR:     return " -> ";
-        case LP_OP_PTR2:    return " ->> ";
+        /* JSON arrow operators are conventionally tight (no spaces)
+         * to match SQLite documentation and most existing code. */
+        case LP_OP_PTR:     return "->";
+        case LP_OP_PTR2:    return "->>";
     }
     return " ?? ";
 }
@@ -558,7 +563,12 @@ static void sql_from(LpNode *node, LpBuf *out) {
                 lp_buf_putc(out, ')');
             }
             if (node->u.from_table.alias) {
-                lp_buf_puts(out, " AS ");
+                /* SQLite (and most dialects) accept `t alias` without
+                 * the AS keyword; we emit the shorter form so the
+                 * canonical output matches the common in-the-wild
+                 * style. Round-trip remains lossless — the parser
+                 * accepts both with and without AS. */
+                lp_buf_putc(out, ' ');
                 sql_ident(out, node->u.from_table.alias);
             }
             if (node->u.from_table.indexed_by) {
@@ -582,7 +592,7 @@ static void sql_from(LpNode *node, LpBuf *out) {
             }
             lp_buf_putc(out, ')');
             if (node->u.from_subquery.alias) {
-                lp_buf_puts(out, " AS ");
+                lp_buf_putc(out, ' ');
                 sql_ident(out, node->u.from_subquery.alias);
             }
             break;
