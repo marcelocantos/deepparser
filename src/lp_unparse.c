@@ -597,11 +597,8 @@ static void sql_from(LpNode *node, LpBuf *out) {
             else if (jt & LP_JOIN_FULL)  lp_buf_puts(out, " FULL");
             if (jt & LP_JOIN_OUTER) lp_buf_puts(out, " OUTER");
             if (jt & LP_JOIN_CROSS)      lp_buf_puts(out, " CROSS");
-            else if (jt & LP_JOIN_INNER) {
-                /* Only emit INNER if no LEFT/RIGHT/FULL/CROSS */
-                if (!(jt & (LP_JOIN_LEFT|LP_JOIN_RIGHT|LP_JOIN_FULL|LP_JOIN_CROSS|LP_JOIN_NATURAL)))
-                    lp_buf_puts(out, " INNER");
-            }
+            /* Plain INNER JOIN canonicalises to bare JOIN — both are
+             * SQL synonyms and bare JOIN is the conventional form. */
             lp_buf_puts(out, " JOIN ");
             sql_from(node->u.join.right, out);
             if (node->u.join.on_expr) {

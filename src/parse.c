@@ -4340,23 +4340,24 @@ static YYACTIONTYPE yy_reduce(
       case 183: /* upsert ::= */ yytestcase(yyruleno==183);
       case 327: /* when_clause ::= */ yytestcase(yyruleno==327);
       case 345: /* key_opt ::= */ yytestcase(yyruleno==345);
+      case 375: /* frame_opt ::= */ yytestcase(yyruleno==375);
 #line 507 "lp_parse.y"
 { yymsp[1].minor.yy179 = 0; }
-#line 4346 "lp_parse.c"
+#line 4347 "lp_parse.c"
         break;
       case 100: /* sqldeep_recurse_opt ::= RECURSE ON LP ID|STRING RP */
 #line 508 "lp_parse.y"
 {
   yymsp[-4].minor.yy179 = lp_make_sqldeep_recurse(ctx, &yymsp[-1].minor.yy0, 0);
 }
-#line 4353 "lp_parse.c"
+#line 4354 "lp_parse.c"
         break;
       case 101: /* sqldeep_recurse_opt ::= RECURSE ON LP ID|STRING EQ ID|STRING RP */
 #line 511 "lp_parse.y"
 {
   yymsp[-6].minor.yy179 = lp_make_sqldeep_recurse(ctx, &yymsp[-3].minor.yy0, &yymsp[-1].minor.yy0);
 }
-#line 4360 "lp_parse.c"
+#line 4361 "lp_parse.c"
         break;
       case 102: /* seltablist ::= stl_prefix nm dbnm as sqldeep_arrow_steps */
 #line 519 "lp_parse.y"
@@ -4364,7 +4365,7 @@ static YYACTIONTYPE yy_reduce(
   (void)yymsp[-2].minor.yy0; (void)yymsp[-1].minor.yy0; /* TODO: capture schema-qualified start and start alias */
   yylhsminor.yy179 = lp_make_sqldeep_join_path(ctx, yymsp[-4].minor.yy179, &yymsp[-3].minor.yy0, yymsp[0].minor.yy533);
 }
-#line 4368 "lp_parse.c"
+#line 4369 "lp_parse.c"
   yymsp[-4].minor.yy179 = yylhsminor.yy179;
         break;
       case 103: /* sqldeep_arrow_steps ::= sqldeep_arrow_step */
@@ -4376,7 +4377,7 @@ static YYACTIONTYPE yy_reduce(
   yylhsminor.yy533 = (LpNodeList*)arena_zeroalloc(ctx->arena, sizeof(LpNodeList));
   if (yymsp[0].minor.yy179) lp_list_append(ctx, yylhsminor.yy533, yymsp[0].minor.yy179);
 }
-#line 4380 "lp_parse.c"
+#line 4381 "lp_parse.c"
   yymsp[0].minor.yy533 = yylhsminor.yy533;
         break;
       case 104: /* sqldeep_arrow_steps ::= sqldeep_arrow_steps sqldeep_arrow_step */
@@ -4387,47 +4388,47 @@ static YYACTIONTYPE yy_reduce(
 {
   if (yymsp[0].minor.yy179) lp_list_append(ctx, yymsp[-1].minor.yy533, yymsp[0].minor.yy179);
 }
-#line 4391 "lp_parse.c"
+#line 4392 "lp_parse.c"
         break;
       case 105: /* sqldeep_arrow_step ::= JOIN_ARROW nm as on_using */
 #line 532 "lp_parse.y"
 {
   yymsp[-3].minor.yy179 = lp_make_sqldeep_join_step(ctx, 1, &yymsp[-2].minor.yy0, &yymsp[-1].minor.yy0, yymsp[0].minor.yy41.pOn, yymsp[0].minor.yy41.pUsing);
 }
-#line 4398 "lp_parse.c"
+#line 4399 "lp_parse.c"
         break;
       case 106: /* sqldeep_arrow_step ::= REV_JOIN_ARROW nm as on_using */
 #line 535 "lp_parse.y"
 {
   yymsp[-3].minor.yy179 = lp_make_sqldeep_join_step(ctx, 0, &yymsp[-2].minor.yy0, &yymsp[-1].minor.yy0, yymsp[0].minor.yy41.pOn, yymsp[0].minor.yy41.pUsing);
 }
-#line 4405 "lp_parse.c"
+#line 4406 "lp_parse.c"
         break;
       case 107: /* expr ::= LP expr RP sqldeep_json_path_segs */
 #line 544 "lp_parse.y"
 {
   yymsp[-3].minor.yy179 = lp_make_sqldeep_json_path(ctx, yymsp[-2].minor.yy179, yymsp[0].minor.yy533);
 }
-#line 4412 "lp_parse.c"
+#line 4413 "lp_parse.c"
         break;
       case 110: /* sqldeep_json_path_seg ::= DOT ID|STRING */
 #line 556 "lp_parse.y"
 { yymsp[-1].minor.yy179 = lp_make_sqldeep_path_name(ctx, &yymsp[0].minor.yy0); }
-#line 4417 "lp_parse.c"
+#line 4418 "lp_parse.c"
         break;
       case 111: /* sqldeep_json_path_seg ::= LBRACKET INTEGER RBRACKET */
 #line 557 "lp_parse.y"
 {
   yymsp[-2].minor.yy179 = lp_make_sqldeep_path_index(ctx, &yymsp[-1].minor.yy0);
 }
-#line 4424 "lp_parse.c"
+#line 4425 "lp_parse.c"
         break;
       case 112: /* values ::= VALUES LP nexprlist RP */
 #line 564 "lp_parse.y"
 {
   yymsp[-3].minor.yy179 = lp_make_values(ctx, yymsp[-1].minor.yy533);
 }
-#line 4431 "lp_parse.c"
+#line 4432 "lp_parse.c"
         break;
       case 113: /* mvalues ::= values COMMA LP nexprlist RP */
 #line 571 "lp_parse.y"
@@ -4436,7 +4437,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *row = lp_make_values(ctx, yymsp[-1].minor.yy533);
   yymsp[-4].minor.yy179 = lp_make_compound(ctx, LP_COMPOUND_UNION_ALL, yymsp[-4].minor.yy179, row);
 }
-#line 4440 "lp_parse.c"
+#line 4441 "lp_parse.c"
         break;
       case 114: /* mvalues ::= mvalues COMMA LP nexprlist RP */
 #line 576 "lp_parse.y"
@@ -4444,14 +4445,14 @@ static YYACTIONTYPE yy_reduce(
   LpNode *row = lp_make_values(ctx, yymsp[-1].minor.yy533);
   yymsp[-4].minor.yy179 = lp_make_compound(ctx, LP_COMPOUND_UNION_ALL, yymsp[-4].minor.yy179, row);
 }
-#line 4448 "lp_parse.c"
+#line 4449 "lp_parse.c"
         break;
       case 116: /* distinct ::= ALL */
       case 239: /* between_op ::= BETWEEN */ yytestcase(yyruleno==239);
       case 242: /* in_op ::= IN */ yytestcase(yyruleno==242);
 #line 583 "lp_parse.y"
 {yymsp[0].minor.yy436 = 0;}
-#line 4455 "lp_parse.c"
+#line 4456 "lp_parse.c"
         break;
       case 118: /* sclp ::= */
       case 270: /* xml_attrs ::= */ yytestcase(yyruleno==270);
@@ -4460,7 +4461,7 @@ static YYACTIONTYPE yy_reduce(
 {
   yymsp[1].minor.yy533 = (LpNodeList*)arena_zeroalloc(ctx->arena, sizeof(LpNodeList));
 }
-#line 4464 "lp_parse.c"
+#line 4465 "lp_parse.c"
         break;
       case 119: /* selcollist ::= sclp scanpt expr scanpt as */
 #line 593 "lp_parse.y"
@@ -4468,7 +4469,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *rc = lp_make_result_column(ctx, yymsp[-2].minor.yy179, yymsp[0].minor.yy0.n>0 ? &yymsp[0].minor.yy0 : 0);
   lp_list_append(ctx, yymsp[-4].minor.yy533, rc);
 }
-#line 4472 "lp_parse.c"
+#line 4473 "lp_parse.c"
         break;
       case 120: /* selcollist ::= sclp scanpt STAR */
 #line 597 "lp_parse.y"
@@ -4476,7 +4477,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *rc = lp_make_result_star(ctx);
   lp_list_append(ctx, yymsp[-2].minor.yy533, rc);
 }
-#line 4480 "lp_parse.c"
+#line 4481 "lp_parse.c"
         break;
       case 121: /* selcollist ::= sclp scanpt nm DOT STAR */
 #line 601 "lp_parse.y"
@@ -4484,7 +4485,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *rc = lp_make_result_table_star(ctx, &yymsp[-2].minor.yy0);
   lp_list_append(ctx, yymsp[-4].minor.yy533, rc);
 }
-#line 4488 "lp_parse.c"
+#line 4489 "lp_parse.c"
         break;
       case 122: /* as ::= AS nm */
       case 134: /* dbnm ::= DOT nm */ yytestcase(yyruleno==134);
@@ -4492,7 +4493,7 @@ static YYACTIONTYPE yy_reduce(
       case 316: /* minus_num ::= MINUS INTEGER|FLOAT */ yytestcase(yyruleno==316);
 #line 608 "lp_parse.y"
 {yymsp[-1].minor.yy0 = yymsp[0].minor.yy0;}
-#line 4496 "lp_parse.c"
+#line 4497 "lp_parse.c"
         break;
       case 124: /* from ::= */
       case 127: /* stl_prefix ::= */ yytestcase(yyruleno==127);
@@ -4504,14 +4505,14 @@ static YYACTIONTYPE yy_reduce(
       case 309: /* vinto ::= */ yytestcase(yyruleno==309);
 #line 617 "lp_parse.y"
 {yymsp[1].minor.yy179 = 0;}
-#line 4508 "lp_parse.c"
+#line 4509 "lp_parse.c"
         break;
       case 125: /* from ::= FROM seltablist */
       case 328: /* when_clause ::= WHEN expr */ yytestcase(yyruleno==328);
       case 346: /* key_opt ::= KEY expr */ yytestcase(yyruleno==346);
 #line 618 "lp_parse.y"
 { yymsp[-1].minor.yy179 = yymsp[0].minor.yy179; }
-#line 4515 "lp_parse.c"
+#line 4516 "lp_parse.c"
         break;
       case 126: /* stl_prefix ::= seltablist joinop */
 #line 620 "lp_parse.y"
@@ -4524,7 +4525,7 @@ static YYACTIONTYPE yy_reduce(
   j->u.join.join_type = yymsp[0].minor.yy436;
   yymsp[-1].minor.yy179 = j;
 }
-#line 4528 "lp_parse.c"
+#line 4529 "lp_parse.c"
         break;
       case 128: /* seltablist ::= stl_prefix nm dbnm as on_using */
 #line 631 "lp_parse.y"
@@ -4546,7 +4547,7 @@ static YYACTIONTYPE yy_reduce(
     yymsp[-4].minor.yy179 = t;
   }
 }
-#line 4550 "lp_parse.c"
+#line 4551 "lp_parse.c"
         break;
       case 129: /* seltablist ::= stl_prefix nm dbnm as indexed_by on_using */
 #line 649 "lp_parse.y"
@@ -4570,7 +4571,7 @@ static YYACTIONTYPE yy_reduce(
     yymsp[-5].minor.yy179 = t;
   }
 }
-#line 4574 "lp_parse.c"
+#line 4575 "lp_parse.c"
         break;
       case 130: /* seltablist ::= stl_prefix nm dbnm LP exprlist RP as on_using */
 #line 669 "lp_parse.y"
@@ -4593,7 +4594,7 @@ static YYACTIONTYPE yy_reduce(
     yymsp[-7].minor.yy179 = t;
   }
 }
-#line 4597 "lp_parse.c"
+#line 4598 "lp_parse.c"
         break;
       case 131: /* seltablist ::= stl_prefix LP select RP as on_using */
 #line 688 "lp_parse.y"
@@ -4615,7 +4616,7 @@ static YYACTIONTYPE yy_reduce(
     yymsp[-5].minor.yy179 = t;
   }
 }
-#line 4619 "lp_parse.c"
+#line 4620 "lp_parse.c"
         break;
       case 132: /* seltablist ::= stl_prefix LP seltablist RP as on_using */
 #line 706 "lp_parse.y"
@@ -4643,20 +4644,20 @@ static YYACTIONTYPE yy_reduce(
     yymsp[-5].minor.yy179 = t;
   }
 }
-#line 4647 "lp_parse.c"
+#line 4648 "lp_parse.c"
         break;
       case 133: /* dbnm ::= */
       case 148: /* indexed_opt ::= */ yytestcase(yyruleno==148);
 #line 732 "lp_parse.y"
 {yymsp[1].minor.yy0.z=0; yymsp[1].minor.yy0.n=0;}
-#line 4653 "lp_parse.c"
+#line 4654 "lp_parse.c"
         break;
       case 135: /* fullname ::= nm */
 #line 737 "lp_parse.y"
 {
   yylhsminor.yy152.name = yymsp[0].minor.yy0; yylhsminor.yy152.schema.z = 0; yylhsminor.yy152.schema.n = 0;
 }
-#line 4660 "lp_parse.c"
+#line 4661 "lp_parse.c"
   yymsp[0].minor.yy152 = yylhsminor.yy152;
         break;
       case 136: /* fullname ::= nm DOT nm */
@@ -4664,7 +4665,7 @@ static YYACTIONTYPE yy_reduce(
 {
   yylhsminor.yy152.schema = yymsp[-2].minor.yy0; yylhsminor.yy152.name = yymsp[0].minor.yy0;
 }
-#line 4668 "lp_parse.c"
+#line 4669 "lp_parse.c"
   yymsp[-2].minor.yy152 = yylhsminor.yy152;
         break;
       case 137: /* xfullname ::= nm */
@@ -4672,7 +4673,7 @@ static YYACTIONTYPE yy_reduce(
 {
   yylhsminor.yy518.name = yymsp[0].minor.yy0; yylhsminor.yy518.schema.z=0; yylhsminor.yy518.schema.n=0; yylhsminor.yy518.alias.z=0; yylhsminor.yy518.alias.n=0;
 }
-#line 4676 "lp_parse.c"
+#line 4677 "lp_parse.c"
   yymsp[0].minor.yy518 = yylhsminor.yy518;
         break;
       case 138: /* xfullname ::= nm DOT nm */
@@ -4680,7 +4681,7 @@ static YYACTIONTYPE yy_reduce(
 {
   yylhsminor.yy518.schema = yymsp[-2].minor.yy0; yylhsminor.yy518.name = yymsp[0].minor.yy0; yylhsminor.yy518.alias.z=0; yylhsminor.yy518.alias.n=0;
 }
-#line 4684 "lp_parse.c"
+#line 4685 "lp_parse.c"
   yymsp[-2].minor.yy518 = yylhsminor.yy518;
         break;
       case 139: /* xfullname ::= nm AS nm */
@@ -4688,7 +4689,7 @@ static YYACTIONTYPE yy_reduce(
 {
   yylhsminor.yy518.name = yymsp[-2].minor.yy0; yylhsminor.yy518.schema.z=0; yylhsminor.yy518.schema.n=0; yylhsminor.yy518.alias = yymsp[0].minor.yy0;
 }
-#line 4692 "lp_parse.c"
+#line 4693 "lp_parse.c"
   yymsp[-2].minor.yy518 = yylhsminor.yy518;
         break;
       case 140: /* xfullname ::= nm DOT nm AS nm */
@@ -4696,56 +4697,56 @@ static YYACTIONTYPE yy_reduce(
 {
   yylhsminor.yy518.schema = yymsp[-4].minor.yy0; yylhsminor.yy518.name = yymsp[-2].minor.yy0; yylhsminor.yy518.alias = yymsp[0].minor.yy0;
 }
-#line 4700 "lp_parse.c"
+#line 4701 "lp_parse.c"
   yymsp[-4].minor.yy518 = yylhsminor.yy518;
         break;
       case 141: /* joinop ::= COMMA|JOIN */
 #line 760 "lp_parse.y"
 { yymsp[0].minor.yy436 = LP_JOIN_INNER; }
-#line 4706 "lp_parse.c"
+#line 4707 "lp_parse.c"
         break;
       case 142: /* joinop ::= JOIN_KW JOIN */
 #line 762 "lp_parse.y"
 {yylhsminor.yy436 = lp_parse_join_type(ctx,&yymsp[-1].minor.yy0,0,0);}
-#line 4711 "lp_parse.c"
+#line 4712 "lp_parse.c"
   yymsp[-1].minor.yy436 = yylhsminor.yy436;
         break;
       case 143: /* joinop ::= JOIN_KW nm JOIN */
 #line 764 "lp_parse.y"
 {yylhsminor.yy436 = lp_parse_join_type(ctx,&yymsp[-2].minor.yy0,&yymsp[-1].minor.yy0,0);}
-#line 4717 "lp_parse.c"
+#line 4718 "lp_parse.c"
   yymsp[-2].minor.yy436 = yylhsminor.yy436;
         break;
       case 144: /* joinop ::= JOIN_KW nm nm JOIN */
 #line 766 "lp_parse.y"
 {yylhsminor.yy436 = lp_parse_join_type(ctx,&yymsp[-3].minor.yy0,&yymsp[-2].minor.yy0,&yymsp[-1].minor.yy0);}
-#line 4723 "lp_parse.c"
+#line 4724 "lp_parse.c"
   yymsp[-3].minor.yy436 = yylhsminor.yy436;
         break;
       case 145: /* on_using ::= ON expr */
 #line 770 "lp_parse.y"
 {yymsp[-1].minor.yy41.pOn = yymsp[0].minor.yy179; yymsp[-1].minor.yy41.pUsing = 0;}
-#line 4729 "lp_parse.c"
+#line 4730 "lp_parse.c"
         break;
       case 146: /* on_using ::= USING LP idlist RP */
 #line 771 "lp_parse.y"
 {yymsp[-3].minor.yy41.pOn = 0; yymsp[-3].minor.yy41.pUsing = yymsp[-1].minor.yy533;}
-#line 4734 "lp_parse.c"
+#line 4735 "lp_parse.c"
         break;
       case 147: /* on_using ::= */
 #line 772 "lp_parse.y"
 {yymsp[1].minor.yy41.pOn = 0; yymsp[1].minor.yy41.pUsing = 0;}
-#line 4739 "lp_parse.c"
+#line 4740 "lp_parse.c"
         break;
       case 149: /* indexed_by ::= INDEXED BY nm */
 #line 779 "lp_parse.y"
 {yymsp[-2].minor.yy0 = yymsp[0].minor.yy0;}
-#line 4744 "lp_parse.c"
+#line 4745 "lp_parse.c"
         break;
       case 150: /* indexed_by ::= NOT INDEXED */
 #line 780 "lp_parse.y"
 {yymsp[-1].minor.yy0.z=0; yymsp[-1].minor.yy0.n=1;}
-#line 4749 "lp_parse.c"
+#line 4750 "lp_parse.c"
         break;
       case 151: /* orderby_opt ::= */
       case 161: /* groupby_opt ::= */ yytestcase(yyruleno==161);
@@ -4755,13 +4756,13 @@ static YYACTIONTYPE yy_reduce(
       case 299: /* eidlist_opt ::= */ yytestcase(yyruleno==299);
 #line 786 "lp_parse.y"
 {yymsp[1].minor.yy533 = 0;}
-#line 4759 "lp_parse.c"
+#line 4760 "lp_parse.c"
         break;
       case 152: /* orderby_opt ::= ORDER BY sortlist */
       case 162: /* groupby_opt ::= GROUP BY nexprlist */ yytestcase(yyruleno==162);
 #line 787 "lp_parse.y"
 {yymsp[-2].minor.yy533 = yymsp[0].minor.yy533;}
-#line 4765 "lp_parse.c"
+#line 4766 "lp_parse.c"
         break;
       case 153: /* sortlist ::= sortlist COMMA expr sortorder nulls */
 #line 788 "lp_parse.y"
@@ -4769,7 +4770,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *t = lp_make_order_term(ctx, yymsp[-2].minor.yy179, yymsp[-1].minor.yy436, yymsp[0].minor.yy436);
   lp_list_append(ctx, yymsp[-4].minor.yy533, t);
 }
-#line 4773 "lp_parse.c"
+#line 4774 "lp_parse.c"
         break;
       case 154: /* sortlist ::= expr sortorder nulls */
 #line 792 "lp_parse.y"
@@ -4778,34 +4779,34 @@ static YYACTIONTYPE yy_reduce(
   LpNode *t = lp_make_order_term(ctx, yymsp[-2].minor.yy179, yymsp[-1].minor.yy436, yymsp[0].minor.yy436);
   lp_list_append(ctx, yylhsminor.yy533, t);
 }
-#line 4782 "lp_parse.c"
+#line 4783 "lp_parse.c"
   yymsp[-2].minor.yy533 = yylhsminor.yy533;
         break;
       case 155: /* sortorder ::= ASC */
 #line 799 "lp_parse.y"
 {yymsp[0].minor.yy436 = LP_SORT_ASC;}
-#line 4788 "lp_parse.c"
+#line 4789 "lp_parse.c"
         break;
       case 156: /* sortorder ::= DESC */
 #line 800 "lp_parse.y"
 {yymsp[0].minor.yy436 = LP_SORT_DESC;}
-#line 4793 "lp_parse.c"
+#line 4794 "lp_parse.c"
         break;
       case 157: /* sortorder ::= */
       case 160: /* nulls ::= */ yytestcase(yyruleno==160);
 #line 801 "lp_parse.y"
 {yymsp[1].minor.yy436 = LP_SORT_UNDEFINED;}
-#line 4799 "lp_parse.c"
+#line 4800 "lp_parse.c"
         break;
       case 158: /* nulls ::= NULLS FIRST */
 #line 804 "lp_parse.y"
 {yymsp[-1].minor.yy436 = LP_SORT_ASC;}
-#line 4804 "lp_parse.c"
+#line 4805 "lp_parse.c"
         break;
       case 159: /* nulls ::= NULLS LAST */
 #line 805 "lp_parse.y"
 {yymsp[-1].minor.yy436 = LP_SORT_DESC;}
-#line 4809 "lp_parse.c"
+#line 4810 "lp_parse.c"
         break;
       case 164: /* having_opt ::= HAVING expr */
       case 171: /* where_opt ::= WHERE expr */ yytestcase(yyruleno==171);
@@ -4813,22 +4814,22 @@ static YYACTIONTYPE yy_reduce(
       case 308: /* vinto ::= INTO expr */ yytestcase(yyruleno==308);
 #line 815 "lp_parse.y"
 {yymsp[-1].minor.yy179 = yymsp[0].minor.yy179;}
-#line 4817 "lp_parse.c"
+#line 4818 "lp_parse.c"
         break;
       case 166: /* limit_opt ::= LIMIT expr */
 #line 821 "lp_parse.y"
 {yymsp[-1].minor.yy179 = lp_make_limit(ctx, yymsp[0].minor.yy179, 0);}
-#line 4822 "lp_parse.c"
+#line 4823 "lp_parse.c"
         break;
       case 167: /* limit_opt ::= LIMIT expr OFFSET expr */
 #line 823 "lp_parse.y"
 {yymsp[-3].minor.yy179 = lp_make_limit(ctx, yymsp[-2].minor.yy179, yymsp[0].minor.yy179);}
-#line 4827 "lp_parse.c"
+#line 4828 "lp_parse.c"
         break;
       case 168: /* limit_opt ::= LIMIT expr COMMA expr */
 #line 825 "lp_parse.y"
 {yymsp[-3].minor.yy179 = lp_make_limit(ctx, yymsp[0].minor.yy179, yymsp[-2].minor.yy179);}
-#line 4832 "lp_parse.c"
+#line 4833 "lp_parse.c"
         break;
       case 169: /* cmd ::= with DELETE FROM xfullname indexed_opt where_opt_ret */
 #line 829 "lp_parse.y"
@@ -4838,27 +4839,27 @@ static YYACTIONTYPE yy_reduce(
   ctx->result = lp_make_delete(ctx, &yymsp[-2].minor.yy518.name, s, a, yymsp[0].minor.yy128.where, 0, 0, yymsp[0].minor.yy128.ret);
   (void)yymsp[-1].minor.yy0;
 }
-#line 4842 "lp_parse.c"
+#line 4843 "lp_parse.c"
         break;
       case 172: /* where_opt_ret ::= */
 #line 841 "lp_parse.y"
 {yymsp[1].minor.yy128.where = 0; yymsp[1].minor.yy128.ret = 0;}
-#line 4847 "lp_parse.c"
+#line 4848 "lp_parse.c"
         break;
       case 173: /* where_opt_ret ::= WHERE expr */
 #line 842 "lp_parse.y"
 {yymsp[-1].minor.yy128.where = yymsp[0].minor.yy179; yymsp[-1].minor.yy128.ret = 0;}
-#line 4852 "lp_parse.c"
+#line 4853 "lp_parse.c"
         break;
       case 174: /* where_opt_ret ::= RETURNING selcollist */
 #line 844 "lp_parse.y"
 {yymsp[-1].minor.yy128.where = 0; yymsp[-1].minor.yy128.ret = yymsp[0].minor.yy533;}
-#line 4857 "lp_parse.c"
+#line 4858 "lp_parse.c"
         break;
       case 175: /* where_opt_ret ::= WHERE expr RETURNING selcollist */
 #line 846 "lp_parse.y"
 {yymsp[-3].minor.yy128.where = yymsp[-2].minor.yy179; yymsp[-3].minor.yy128.ret = yymsp[0].minor.yy533;}
-#line 4862 "lp_parse.c"
+#line 4863 "lp_parse.c"
         break;
       case 176: /* cmd ::= with UPDATE orconf xfullname indexed_opt SET setlist from where_opt_ret */
 #line 851 "lp_parse.y"
@@ -4868,7 +4869,7 @@ static YYACTIONTYPE yy_reduce(
   ctx->result = lp_make_update(ctx, yymsp[-6].minor.yy436, &yymsp[-5].minor.yy518.name, s, a, yymsp[-2].minor.yy533, yymsp[-1].minor.yy179, yymsp[0].minor.yy128.where, 0, 0, yymsp[0].minor.yy128.ret);
   (void)yymsp[-4].minor.yy0;
 }
-#line 4872 "lp_parse.c"
+#line 4873 "lp_parse.c"
         break;
       case 177: /* setlist ::= setlist COMMA nm EQ expr */
 #line 859 "lp_parse.y"
@@ -4876,7 +4877,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *sc = lp_make_set_clause(ctx, &yymsp[-2].minor.yy0, yymsp[0].minor.yy179);
   lp_list_append(ctx, yymsp[-4].minor.yy533, sc);
 }
-#line 4880 "lp_parse.c"
+#line 4881 "lp_parse.c"
         break;
       case 178: /* setlist ::= setlist COMMA LP idlist RP EQ expr */
 #line 863 "lp_parse.y"
@@ -4884,7 +4885,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *sc = lp_make_set_clause_multi(ctx, yymsp[-3].minor.yy533, yymsp[0].minor.yy179);
   lp_list_append(ctx, yymsp[-6].minor.yy533, sc);
 }
-#line 4888 "lp_parse.c"
+#line 4889 "lp_parse.c"
         break;
       case 179: /* setlist ::= nm EQ expr */
 #line 867 "lp_parse.y"
@@ -4893,7 +4894,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *sc = lp_make_set_clause(ctx, &yymsp[-2].minor.yy0, yymsp[0].minor.yy179);
   lp_list_append(ctx, yylhsminor.yy533, sc);
 }
-#line 4897 "lp_parse.c"
+#line 4898 "lp_parse.c"
   yymsp[-2].minor.yy533 = yylhsminor.yy533;
         break;
       case 180: /* setlist ::= LP idlist RP EQ expr */
@@ -4903,7 +4904,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *sc = lp_make_set_clause_multi(ctx, yymsp[-3].minor.yy533, yymsp[0].minor.yy179);
   lp_list_append(ctx, yymsp[-4].minor.yy533, sc);
 }
-#line 4907 "lp_parse.c"
+#line 4908 "lp_parse.c"
         break;
       case 181: /* cmd ::= with insert_cmd INTO xfullname idlist_opt select upsert */
 #line 881 "lp_parse.y"
@@ -4914,7 +4915,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *ups = (yymsp[0].minor.yy179 && yymsp[0].minor.yy179->kind==LP_UPSERT) ? yymsp[0].minor.yy179 : 0;
   ctx->result = lp_make_insert(ctx, yymsp[-5].minor.yy436, &yymsp[-3].minor.yy518.name, s, a, yymsp[-2].minor.yy533, yymsp[-1].minor.yy179, ups, ret);
 }
-#line 4918 "lp_parse.c"
+#line 4919 "lp_parse.c"
         break;
       case 182: /* cmd ::= with insert_cmd INTO xfullname idlist_opt DEFAULT VALUES returning */
 #line 888 "lp_parse.y"
@@ -4923,28 +4924,28 @@ static YYACTIONTYPE yy_reduce(
   LpToken *a = yymsp[-4].minor.yy518.alias.n>0 ? &yymsp[-4].minor.yy518.alias : 0;
   ctx->result = lp_make_insert(ctx, yymsp[-6].minor.yy436, &yymsp[-4].minor.yy518.name, s, a, yymsp[-3].minor.yy533, 0, 0, yymsp[0].minor.yy533);
 }
-#line 4927 "lp_parse.c"
+#line 4928 "lp_parse.c"
         break;
       case 184: /* upsert ::= RETURNING selcollist */
 #line 896 "lp_parse.y"
 {
   yymsp[-1].minor.yy179 = lp_make_returning(ctx, yymsp[0].minor.yy533);
 }
-#line 4934 "lp_parse.c"
+#line 4935 "lp_parse.c"
         break;
       case 185: /* upsert ::= ON CONFLICT LP sortlist RP where_opt DO UPDATE SET setlist where_opt upsert */
 #line 900 "lp_parse.y"
 {
   yymsp[-11].minor.yy179 = lp_make_upsert(ctx, yymsp[-8].minor.yy533, yymsp[-6].minor.yy179, yymsp[-2].minor.yy533, yymsp[-1].minor.yy179, yymsp[0].minor.yy179);
 }
-#line 4941 "lp_parse.c"
+#line 4942 "lp_parse.c"
         break;
       case 186: /* upsert ::= ON CONFLICT LP sortlist RP where_opt DO NOTHING upsert */
 #line 903 "lp_parse.y"
 {
   yymsp[-8].minor.yy179 = lp_make_upsert(ctx, yymsp[-5].minor.yy533, yymsp[-3].minor.yy179, 0, 0, yymsp[0].minor.yy179);
 }
-#line 4948 "lp_parse.c"
+#line 4949 "lp_parse.c"
         break;
       case 187: /* upsert ::= ON CONFLICT DO NOTHING returning */
 #line 906 "lp_parse.y"
@@ -4952,7 +4953,7 @@ static YYACTIONTYPE yy_reduce(
   yymsp[-4].minor.yy179 = lp_make_upsert(ctx, 0, 0, 0, 0, 0);
   (void)yymsp[0].minor.yy533;
 }
-#line 4956 "lp_parse.c"
+#line 4957 "lp_parse.c"
         break;
       case 188: /* upsert ::= ON CONFLICT DO UPDATE SET setlist where_opt returning */
 #line 910 "lp_parse.y"
@@ -4960,25 +4961,25 @@ static YYACTIONTYPE yy_reduce(
   yymsp[-7].minor.yy179 = lp_make_upsert(ctx, 0, 0, yymsp[-2].minor.yy533, yymsp[-1].minor.yy179, 0);
   (void)yymsp[0].minor.yy533;
 }
-#line 4964 "lp_parse.c"
+#line 4965 "lp_parse.c"
         break;
       case 189: /* returning ::= RETURNING selcollist */
       case 394: /* window_clause ::= WINDOW windowdefn_list */ yytestcase(yyruleno==394);
 #line 916 "lp_parse.y"
 { yymsp[-1].minor.yy533 = yymsp[0].minor.yy533; }
-#line 4970 "lp_parse.c"
+#line 4971 "lp_parse.c"
         break;
       case 190: /* returning ::= */
 #line 917 "lp_parse.y"
 { yymsp[1].minor.yy533 = 0; }
-#line 4975 "lp_parse.c"
+#line 4976 "lp_parse.c"
         break;
       case 194: /* idlist_opt ::= LP idlist RP */
       case 259: /* paren_exprlist ::= LP exprlist RP */ yytestcase(yyruleno==259);
       case 300: /* eidlist_opt ::= LP eidlist RP */ yytestcase(yyruleno==300);
 #line 928 "lp_parse.y"
 {yymsp[-2].minor.yy533 = yymsp[-1].minor.yy533;}
-#line 4982 "lp_parse.c"
+#line 4983 "lp_parse.c"
         break;
       case 195: /* idlist ::= idlist COMMA nm */
 #line 929 "lp_parse.y"
@@ -4986,7 +4987,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *n = lp_make_id_node(ctx, &yymsp[0].minor.yy0);
   lp_list_append(ctx, yymsp[-2].minor.yy533, n);
 }
-#line 4990 "lp_parse.c"
+#line 4991 "lp_parse.c"
         break;
       case 196: /* idlist ::= nm */
 #line 933 "lp_parse.y"
@@ -4995,18 +4996,18 @@ static YYACTIONTYPE yy_reduce(
   LpNode *n = lp_make_id_node(ctx, &yymsp[0].minor.yy0);
   lp_list_append(ctx, yylhsminor.yy533, n);
 }
-#line 4999 "lp_parse.c"
+#line 5000 "lp_parse.c"
   yymsp[0].minor.yy533 = yylhsminor.yy533;
         break;
       case 197: /* expr ::= LP expr RP */
 #line 945 "lp_parse.y"
 {yymsp[-2].minor.yy179 = yymsp[-1].minor.yy179;}
-#line 5005 "lp_parse.c"
+#line 5006 "lp_parse.c"
         break;
       case 198: /* expr ::= ID|INDEXED|JOIN_KW */
 #line 946 "lp_parse.y"
 {yylhsminor.yy179 = lp_make_column_ref(ctx, &yymsp[0].minor.yy0);}
-#line 5010 "lp_parse.c"
+#line 5011 "lp_parse.c"
   yymsp[0].minor.yy179 = yylhsminor.yy179;
         break;
       case 199: /* expr ::= nm DOT nm */
@@ -5014,7 +5015,7 @@ static YYACTIONTYPE yy_reduce(
 {
   yylhsminor.yy179 = lp_make_column_ref2(ctx, &yymsp[-2].minor.yy0, &yymsp[0].minor.yy0);
 }
-#line 5018 "lp_parse.c"
+#line 5019 "lp_parse.c"
   yymsp[-2].minor.yy179 = yylhsminor.yy179;
         break;
       case 200: /* expr ::= nm DOT nm DOT nm */
@@ -5022,43 +5023,43 @@ static YYACTIONTYPE yy_reduce(
 {
   yylhsminor.yy179 = lp_make_column_ref3(ctx, &yymsp[-4].minor.yy0, &yymsp[-2].minor.yy0, &yymsp[0].minor.yy0);
 }
-#line 5026 "lp_parse.c"
+#line 5027 "lp_parse.c"
   yymsp[-4].minor.yy179 = yylhsminor.yy179;
         break;
       case 201: /* term ::= NULL */
 #line 953 "lp_parse.y"
 {yylhsminor.yy179 = lp_make_literal_null(ctx); (void)yymsp[0].minor.yy0;}
-#line 5032 "lp_parse.c"
+#line 5033 "lp_parse.c"
   yymsp[0].minor.yy179 = yylhsminor.yy179;
         break;
       case 202: /* term ::= FLOAT */
 #line 954 "lp_parse.y"
 {yylhsminor.yy179 = lp_make_literal_float(ctx, &yymsp[0].minor.yy0);}
-#line 5038 "lp_parse.c"
+#line 5039 "lp_parse.c"
   yymsp[0].minor.yy179 = yylhsminor.yy179;
         break;
       case 203: /* term ::= BLOB */
 #line 955 "lp_parse.y"
 {yylhsminor.yy179 = lp_make_literal_blob(ctx, &yymsp[0].minor.yy0);}
-#line 5044 "lp_parse.c"
+#line 5045 "lp_parse.c"
   yymsp[0].minor.yy179 = yylhsminor.yy179;
         break;
       case 204: /* term ::= STRING */
 #line 956 "lp_parse.y"
 {yylhsminor.yy179 = lp_make_literal_string(ctx, &yymsp[0].minor.yy0);}
-#line 5050 "lp_parse.c"
+#line 5051 "lp_parse.c"
   yymsp[0].minor.yy179 = yylhsminor.yy179;
         break;
       case 205: /* term ::= INTEGER */
 #line 957 "lp_parse.y"
 {yylhsminor.yy179 = lp_make_literal_int(ctx, &yymsp[0].minor.yy0);}
-#line 5056 "lp_parse.c"
+#line 5057 "lp_parse.c"
   yymsp[0].minor.yy179 = yylhsminor.yy179;
         break;
       case 206: /* expr ::= VARIABLE */
 #line 958 "lp_parse.y"
 { yylhsminor.yy179 = lp_make_variable(ctx, &yymsp[0].minor.yy0); }
-#line 5062 "lp_parse.c"
+#line 5063 "lp_parse.c"
   yymsp[0].minor.yy179 = yylhsminor.yy179;
         break;
       case 207: /* expr ::= expr COLLATE ID|STRING */
@@ -5066,21 +5067,21 @@ static YYACTIONTYPE yy_reduce(
 {
   yymsp[-2].minor.yy179 = lp_make_collate(ctx, yymsp[-2].minor.yy179, &yymsp[0].minor.yy0);
 }
-#line 5070 "lp_parse.c"
+#line 5071 "lp_parse.c"
         break;
       case 208: /* expr ::= CAST LP expr AS typetoken RP */
 #line 962 "lp_parse.y"
 {
   yymsp[-5].minor.yy179 = lp_make_cast(ctx, yymsp[-3].minor.yy179, &yymsp[-1].minor.yy0);
 }
-#line 5077 "lp_parse.c"
+#line 5078 "lp_parse.c"
         break;
       case 209: /* expr ::= ID|INDEXED|JOIN_KW LP distinct exprlist RP */
 #line 967 "lp_parse.y"
 {
   yylhsminor.yy179 = lp_make_function(ctx, &yymsp[-4].minor.yy0, yymsp[-1].minor.yy533, yymsp[-2].minor.yy436);
 }
-#line 5084 "lp_parse.c"
+#line 5085 "lp_parse.c"
   yymsp[-4].minor.yy179 = yylhsminor.yy179;
         break;
       case 210: /* expr ::= ID|INDEXED|JOIN_KW LP distinct exprlist ORDER BY sortlist RP */
@@ -5089,7 +5090,7 @@ static YYACTIONTYPE yy_reduce(
   yylhsminor.yy179 = lp_make_function(ctx, &yymsp[-7].minor.yy0, yymsp[-4].minor.yy533, yymsp[-5].minor.yy436);
   if(yylhsminor.yy179) yylhsminor.yy179->u.function.order_by = *yymsp[-1].minor.yy533;
 }
-#line 5093 "lp_parse.c"
+#line 5094 "lp_parse.c"
   yymsp[-7].minor.yy179 = yylhsminor.yy179;
         break;
       case 211: /* expr ::= ID|INDEXED|JOIN_KW LP STAR RP */
@@ -5097,7 +5098,7 @@ static YYACTIONTYPE yy_reduce(
 {
   yylhsminor.yy179 = lp_make_function_star(ctx, &yymsp[-3].minor.yy0);
 }
-#line 5101 "lp_parse.c"
+#line 5102 "lp_parse.c"
   yymsp[-3].minor.yy179 = yylhsminor.yy179;
         break;
       case 212: /* expr ::= ID|INDEXED|JOIN_KW LP distinct exprlist RP filter_over */
@@ -5107,7 +5108,7 @@ static YYACTIONTYPE yy_reduce(
   if(ctx->pending_filter) { lp_attach_filter(ctx, yylhsminor.yy179, ctx->pending_filter); ctx->pending_filter = 0; }
   if(yymsp[0].minor.yy179) lp_attach_window(ctx, yylhsminor.yy179, yymsp[0].minor.yy179);
 }
-#line 5111 "lp_parse.c"
+#line 5112 "lp_parse.c"
   yymsp[-5].minor.yy179 = yylhsminor.yy179;
         break;
       case 213: /* expr ::= ID|INDEXED|JOIN_KW LP distinct exprlist ORDER BY sortlist RP filter_over */
@@ -5118,7 +5119,7 @@ static YYACTIONTYPE yy_reduce(
   if(ctx->pending_filter) { lp_attach_filter(ctx, yylhsminor.yy179, ctx->pending_filter); ctx->pending_filter = 0; }
   if(yymsp[0].minor.yy179) lp_attach_window(ctx, yylhsminor.yy179, yymsp[0].minor.yy179);
 }
-#line 5122 "lp_parse.c"
+#line 5123 "lp_parse.c"
   yymsp[-8].minor.yy179 = yylhsminor.yy179;
         break;
       case 214: /* expr ::= ID|INDEXED|JOIN_KW LP STAR RP filter_over */
@@ -5128,7 +5129,7 @@ static YYACTIONTYPE yy_reduce(
   if(ctx->pending_filter) { lp_attach_filter(ctx, yylhsminor.yy179, ctx->pending_filter); ctx->pending_filter = 0; }
   if(yymsp[0].minor.yy179) lp_attach_window(ctx, yylhsminor.yy179, yymsp[0].minor.yy179);
 }
-#line 5132 "lp_parse.c"
+#line 5133 "lp_parse.c"
   yymsp[-4].minor.yy179 = yylhsminor.yy179;
         break;
       case 215: /* term ::= CTIME_KW */
@@ -5137,7 +5138,7 @@ static YYACTIONTYPE yy_reduce(
   yylhsminor.yy179 = lp_make_function(ctx, &yymsp[0].minor.yy0, 0, 0);
   if(yylhsminor.yy179) yylhsminor.yy179->u.function.is_ctime_kw = 1;
 }
-#line 5141 "lp_parse.c"
+#line 5142 "lp_parse.c"
   yymsp[0].minor.yy179 = yylhsminor.yy179;
         break;
       case 216: /* expr ::= LP nexprlist COMMA expr RP */
@@ -5147,17 +5148,17 @@ static YYACTIONTYPE yy_reduce(
   lp_list_append(ctx, list, yymsp[-1].minor.yy179);
   yymsp[-4].minor.yy179 = lp_make_vector(ctx, list);
 }
-#line 5151 "lp_parse.c"
+#line 5152 "lp_parse.c"
         break;
       case 217: /* expr ::= expr AND expr */
 #line 1008 "lp_parse.y"
 {yymsp[-2].minor.yy179 = lp_make_binary(ctx, LP_OP_AND, yymsp[-2].minor.yy179, yymsp[0].minor.yy179);}
-#line 5156 "lp_parse.c"
+#line 5157 "lp_parse.c"
         break;
       case 218: /* expr ::= expr OR expr */
 #line 1009 "lp_parse.y"
 {yymsp[-2].minor.yy179 = lp_make_binary(ctx, LP_OP_OR, yymsp[-2].minor.yy179, yymsp[0].minor.yy179);}
-#line 5161 "lp_parse.c"
+#line 5162 "lp_parse.c"
         break;
       case 219: /* expr ::= expr LT|GT|GE|LE expr */
       case 220: /* expr ::= expr EQ|NE expr */ yytestcase(yyruleno==220);
@@ -5166,17 +5167,17 @@ static YYACTIONTYPE yy_reduce(
       case 223: /* expr ::= expr STAR|SLASH|REM expr */ yytestcase(yyruleno==223);
 #line 1011 "lp_parse.y"
 {yymsp[-2].minor.yy179 = lp_make_binary(ctx, token_to_binop(yymsp[-1].major), yymsp[-2].minor.yy179, yymsp[0].minor.yy179);}
-#line 5170 "lp_parse.c"
+#line 5171 "lp_parse.c"
         break;
       case 224: /* expr ::= expr CONCAT expr */
 #line 1019 "lp_parse.y"
 {yymsp[-2].minor.yy179 = lp_make_binary(ctx, LP_OP_CONCAT, yymsp[-2].minor.yy179, yymsp[0].minor.yy179);}
-#line 5175 "lp_parse.c"
+#line 5176 "lp_parse.c"
         break;
       case 225: /* likeop ::= NOT LIKE_KW|MATCH */
 #line 1024 "lp_parse.y"
 {yymsp[-1].minor.yy0=yymsp[0].minor.yy0; yymsp[-1].minor.yy0.n|=0x80000000;}
-#line 5180 "lp_parse.c"
+#line 5181 "lp_parse.c"
         break;
       case 226: /* expr ::= expr likeop expr */
 #line 1025 "lp_parse.y"
@@ -5185,7 +5186,7 @@ static YYACTIONTYPE yy_reduce(
   yymsp[-1].minor.yy0.n &= 0x7fffffff;
   yymsp[-2].minor.yy179 = lp_make_like(ctx, yymsp[-2].minor.yy179, yymsp[0].minor.yy179, 0, &yymsp[-1].minor.yy0, bNot);
 }
-#line 5189 "lp_parse.c"
+#line 5190 "lp_parse.c"
         break;
       case 227: /* expr ::= expr likeop expr ESCAPE expr */
 #line 1030 "lp_parse.y"
@@ -5194,60 +5195,60 @@ static YYACTIONTYPE yy_reduce(
   yymsp[-3].minor.yy0.n &= 0x7fffffff;
   yymsp[-4].minor.yy179 = lp_make_like(ctx, yymsp[-4].minor.yy179, yymsp[-2].minor.yy179, yymsp[0].minor.yy179, &yymsp[-3].minor.yy0, bNot);
 }
-#line 5198 "lp_parse.c"
+#line 5199 "lp_parse.c"
         break;
       case 228: /* expr ::= expr ISNULL */
 #line 1037 "lp_parse.y"
 { yymsp[-1].minor.yy179 = lp_make_isnull(ctx, yymsp[-1].minor.yy179, 0); }
-#line 5203 "lp_parse.c"
+#line 5204 "lp_parse.c"
         break;
       case 229: /* expr ::= expr NOTNULL */
 #line 1038 "lp_parse.y"
 { yymsp[-1].minor.yy179 = lp_make_isnull(ctx, yymsp[-1].minor.yy179, 1); }
-#line 5208 "lp_parse.c"
+#line 5209 "lp_parse.c"
         break;
       case 230: /* expr ::= expr NOT NULL */
 #line 1039 "lp_parse.y"
 { yymsp[-2].minor.yy179 = lp_make_isnull(ctx, yymsp[-2].minor.yy179, 1); }
-#line 5213 "lp_parse.c"
+#line 5214 "lp_parse.c"
         break;
       case 231: /* expr ::= expr IS expr */
 #line 1042 "lp_parse.y"
 {
   yymsp[-2].minor.yy179 = lp_make_is(ctx, yymsp[-2].minor.yy179, yymsp[0].minor.yy179, 0);
 }
-#line 5220 "lp_parse.c"
+#line 5221 "lp_parse.c"
         break;
       case 232: /* expr ::= expr IS NOT expr */
 #line 1045 "lp_parse.y"
 {
   yymsp[-3].minor.yy179 = lp_make_is(ctx, yymsp[-3].minor.yy179, yymsp[0].minor.yy179, 1);
 }
-#line 5227 "lp_parse.c"
+#line 5228 "lp_parse.c"
         break;
       case 233: /* expr ::= expr IS NOT DISTINCT FROM expr */
 #line 1048 "lp_parse.y"
 {
   yymsp[-5].minor.yy179 = lp_make_is(ctx, yymsp[-5].minor.yy179, yymsp[0].minor.yy179, 0);
 }
-#line 5234 "lp_parse.c"
+#line 5235 "lp_parse.c"
         break;
       case 234: /* expr ::= expr IS DISTINCT FROM expr */
 #line 1051 "lp_parse.y"
 {
   yymsp[-4].minor.yy179 = lp_make_is(ctx, yymsp[-4].minor.yy179, yymsp[0].minor.yy179, 1);
 }
-#line 5241 "lp_parse.c"
+#line 5242 "lp_parse.c"
         break;
       case 235: /* expr ::= NOT expr */
 #line 1056 "lp_parse.y"
 { yymsp[-1].minor.yy179 = lp_make_unary(ctx, LP_UOP_NOT, yymsp[0].minor.yy179); }
-#line 5246 "lp_parse.c"
+#line 5247 "lp_parse.c"
         break;
       case 236: /* expr ::= BITNOT expr */
 #line 1057 "lp_parse.y"
 { yymsp[-1].minor.yy179 = lp_make_unary(ctx, LP_UOP_BITNOT, yymsp[0].minor.yy179); }
-#line 5251 "lp_parse.c"
+#line 5252 "lp_parse.c"
         break;
       case 237: /* expr ::= PLUS|MINUS expr */
 #line 1058 "lp_parse.y"
@@ -5258,7 +5259,7 @@ static YYACTIONTYPE yy_reduce(
     yylhsminor.yy179 = lp_make_unary(ctx, LP_UOP_PLUS, yymsp[0].minor.yy179);
   }
 }
-#line 5262 "lp_parse.c"
+#line 5263 "lp_parse.c"
   yymsp[-1].minor.yy179 = yylhsminor.yy179;
         break;
       case 238: /* expr ::= expr PTR expr */
@@ -5267,7 +5268,7 @@ static YYACTIONTYPE yy_reduce(
   int op = (yymsp[-1].minor.yy0.n==3) ? LP_OP_PTR2 : LP_OP_PTR;
   yylhsminor.yy179 = lp_make_binary(ctx, op, yymsp[-2].minor.yy179, yymsp[0].minor.yy179);
 }
-#line 5271 "lp_parse.c"
+#line 5272 "lp_parse.c"
   yymsp[-2].minor.yy179 = yylhsminor.yy179;
         break;
       case 241: /* expr ::= expr between_op expr AND expr */
@@ -5275,28 +5276,28 @@ static YYACTIONTYPE yy_reduce(
 {
   yymsp[-4].minor.yy179 = lp_make_between(ctx, yymsp[-4].minor.yy179, yymsp[-2].minor.yy179, yymsp[0].minor.yy179, yymsp[-3].minor.yy436);
 }
-#line 5279 "lp_parse.c"
+#line 5280 "lp_parse.c"
         break;
       case 244: /* expr ::= expr in_op LP exprlist RP */
 #line 1084 "lp_parse.y"
 {
   yymsp[-4].minor.yy179 = lp_make_in_list(ctx, yymsp[-4].minor.yy179, yymsp[-1].minor.yy533, yymsp[-3].minor.yy436);
 }
-#line 5286 "lp_parse.c"
+#line 5287 "lp_parse.c"
         break;
       case 245: /* expr ::= LP select RP */
 #line 1087 "lp_parse.y"
 {
   yymsp[-2].minor.yy179 = lp_make_subquery(ctx, yymsp[-1].minor.yy179);
 }
-#line 5293 "lp_parse.c"
+#line 5294 "lp_parse.c"
         break;
       case 246: /* expr ::= expr in_op LP select RP */
 #line 1090 "lp_parse.y"
 {
   yymsp[-4].minor.yy179 = lp_make_in_select(ctx, yymsp[-4].minor.yy179, yymsp[-1].minor.yy179, yymsp[-3].minor.yy436);
 }
-#line 5300 "lp_parse.c"
+#line 5301 "lp_parse.c"
         break;
       case 247: /* expr ::= expr in_op nm dbnm paren_exprlist */
 #line 1093 "lp_parse.y"
@@ -5310,21 +5311,21 @@ static YYACTIONTYPE yy_reduce(
   LpNode *sel = lp_make_select(ctx, 0, cols, t, 0, 0, 0, 0, 0);
   yymsp[-4].minor.yy179 = lp_make_in_select(ctx, yymsp[-4].minor.yy179, sel, yymsp[-3].minor.yy436);
 }
-#line 5314 "lp_parse.c"
+#line 5315 "lp_parse.c"
         break;
       case 248: /* expr ::= EXISTS LP select RP */
 #line 1103 "lp_parse.y"
 {
   yymsp[-3].minor.yy179 = lp_make_exists(ctx, yymsp[-1].minor.yy179);
 }
-#line 5321 "lp_parse.c"
+#line 5322 "lp_parse.c"
         break;
       case 249: /* expr ::= CASE case_operand case_exprlist case_else END */
 #line 1108 "lp_parse.y"
 {
   yymsp[-4].minor.yy179 = lp_make_case(ctx, yymsp[-3].minor.yy179, yymsp[-2].minor.yy533, yymsp[-1].minor.yy179);
 }
-#line 5328 "lp_parse.c"
+#line 5329 "lp_parse.c"
         break;
       case 250: /* case_exprlist ::= case_exprlist WHEN expr THEN expr */
 #line 1112 "lp_parse.y"
@@ -5332,7 +5333,7 @@ static YYACTIONTYPE yy_reduce(
   lp_list_append(ctx, yymsp[-4].minor.yy533, yymsp[-2].minor.yy179);
   lp_list_append(ctx, yymsp[-4].minor.yy533, yymsp[0].minor.yy179);
 }
-#line 5336 "lp_parse.c"
+#line 5337 "lp_parse.c"
         break;
       case 251: /* case_exprlist ::= WHEN expr THEN expr */
 #line 1116 "lp_parse.y"
@@ -5341,7 +5342,7 @@ static YYACTIONTYPE yy_reduce(
   lp_list_append(ctx, yymsp[-3].minor.yy533, yymsp[-2].minor.yy179);
   lp_list_append(ctx, yymsp[-3].minor.yy533, yymsp[0].minor.yy179);
 }
-#line 5345 "lp_parse.c"
+#line 5346 "lp_parse.c"
         break;
       case 256: /* nexprlist ::= nexprlist COMMA expr */
       case 365: /* wqlist ::= wqlist COMMA wqitem */ yytestcase(yyruleno==365);
@@ -5350,7 +5351,7 @@ static YYACTIONTYPE yy_reduce(
 {
   lp_list_append(ctx, yymsp[-2].minor.yy533, yymsp[0].minor.yy179);
 }
-#line 5354 "lp_parse.c"
+#line 5355 "lp_parse.c"
         break;
       case 257: /* nexprlist ::= expr */
       case 364: /* wqlist ::= wqitem */ yytestcase(yyruleno==364);
@@ -5360,38 +5361,38 @@ static YYACTIONTYPE yy_reduce(
   yylhsminor.yy533 = (LpNodeList*)arena_zeroalloc(ctx->arena, sizeof(LpNodeList));
   lp_list_append(ctx, yylhsminor.yy533, yymsp[0].minor.yy179);
 }
-#line 5364 "lp_parse.c"
+#line 5365 "lp_parse.c"
   yymsp[0].minor.yy533 = yylhsminor.yy533;
         break;
       case 260: /* expr ::= LBRACE RBRACE */
 #line 1151 "lp_parse.y"
 { yymsp[-1].minor.yy179 = lp_make_sqldeep_object(ctx, 0); }
-#line 5370 "lp_parse.c"
+#line 5371 "lp_parse.c"
         break;
       case 261: /* expr ::= LBRACE sqldeep_object_fields RBRACE */
 #line 1152 "lp_parse.y"
 { yymsp[-2].minor.yy179 = lp_make_sqldeep_object(ctx, yymsp[-1].minor.yy533); }
-#line 5375 "lp_parse.c"
+#line 5376 "lp_parse.c"
         break;
       case 262: /* expr ::= LBRACE sqldeep_object_fields FIELD_COMMA RBRACE */
 #line 1153 "lp_parse.y"
 { yymsp[-3].minor.yy179 = lp_make_sqldeep_object(ctx, yymsp[-2].minor.yy533); }
-#line 5380 "lp_parse.c"
+#line 5381 "lp_parse.c"
         break;
       case 263: /* expr ::= LBRACKET RBRACKET */
 #line 1154 "lp_parse.y"
 { yymsp[-1].minor.yy179 = lp_make_sqldeep_array(ctx, 0); }
-#line 5385 "lp_parse.c"
+#line 5386 "lp_parse.c"
         break;
       case 264: /* expr ::= LBRACKET sqldeep_array_elements RBRACKET */
 #line 1155 "lp_parse.y"
 { yymsp[-2].minor.yy179 = lp_make_sqldeep_array(ctx, yymsp[-1].minor.yy533); }
-#line 5390 "lp_parse.c"
+#line 5391 "lp_parse.c"
         break;
       case 265: /* expr ::= LBRACKET sqldeep_array_elements FIELD_COMMA RBRACKET */
 #line 1156 "lp_parse.y"
 { yymsp[-3].minor.yy179 = lp_make_sqldeep_array(ctx, yymsp[-2].minor.yy533); }
-#line 5395 "lp_parse.c"
+#line 5396 "lp_parse.c"
         break;
       case 267: /* sqldeep_array_elements ::= sqldeep_array_elements FIELD_COMMA expr */
       case 285: /* sqldeep_object_fields ::= sqldeep_object_fields FIELD_COMMA sqldeep_object_field */ yytestcase(yyruleno==285);
@@ -5399,13 +5400,13 @@ static YYACTIONTYPE yy_reduce(
 {
   if (yymsp[0].minor.yy179) lp_list_append(ctx, yymsp[-2].minor.yy533, yymsp[0].minor.yy179);
 }
-#line 5403 "lp_parse.c"
+#line 5404 "lp_parse.c"
         break;
       case 268: /* xml_tag_name ::= xml_tag_name DOT ID|STRING */
       case 269: /* xml_tag_name ::= xml_tag_name COLON ID|STRING */ yytestcase(yyruleno==269);
 #line 1176 "lp_parse.y"
 { yymsp[-2].minor.yy0.n = (int)(yymsp[0].minor.yy0.z + yymsp[0].minor.yy0.n - yymsp[-2].minor.yy0.z); }
-#line 5409 "lp_parse.c"
+#line 5410 "lp_parse.c"
         break;
       case 272: /* xml_attr ::= ID|STRING */
 #line 1191 "lp_parse.y"
@@ -5413,7 +5414,7 @@ static YYACTIONTYPE yy_reduce(
   /* Boolean attribute: <input disabled/> */
   yylhsminor.yy179 = lp_make_sqldeep_xml_attr(ctx, &yymsp[0].minor.yy0, NULL, 0);
 }
-#line 5417 "lp_parse.c"
+#line 5418 "lp_parse.c"
   yymsp[0].minor.yy179 = yylhsminor.yy179;
         break;
       case 273: /* xml_attr ::= ID|STRING EQ ID|STRING */
@@ -5424,7 +5425,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *val = lp_make_literal_string(ctx, &yymsp[0].minor.yy0);
   yylhsminor.yy179 = lp_make_sqldeep_xml_attr(ctx, &yymsp[-2].minor.yy0, val, 0);
 }
-#line 5428 "lp_parse.c"
+#line 5429 "lp_parse.c"
   yymsp[-2].minor.yy179 = yylhsminor.yy179;
         break;
       case 274: /* xml_attr ::= ID|STRING EQ LBRACE expr RBRACE */
@@ -5433,7 +5434,7 @@ static YYACTIONTYPE yy_reduce(
   /* Dynamic attribute: name={expr} */
   yylhsminor.yy179 = lp_make_sqldeep_xml_attr(ctx, &yymsp[-4].minor.yy0, yymsp[-1].minor.yy179, 1);
 }
-#line 5437 "lp_parse.c"
+#line 5438 "lp_parse.c"
   yymsp[-4].minor.yy179 = yylhsminor.yy179;
         break;
       case 277: /* xml_child ::= XML_TEXT */
@@ -5441,14 +5442,14 @@ static YYACTIONTYPE yy_reduce(
 {
   yylhsminor.yy179 = lp_make_sqldeep_xml_text(ctx, &yymsp[0].minor.yy0);
 }
-#line 5445 "lp_parse.c"
+#line 5446 "lp_parse.c"
   yymsp[0].minor.yy179 = yylhsminor.yy179;
         break;
       case 278: /* xml_child ::= xml_element */
       case 283: /* expr ::= xml_element */ yytestcase(yyruleno==283);
 #line 1216 "lp_parse.y"
 { yylhsminor.yy179 = yymsp[0].minor.yy179; }
-#line 5452 "lp_parse.c"
+#line 5453 "lp_parse.c"
   yymsp[0].minor.yy179 = yylhsminor.yy179;
         break;
       case 279: /* xml_child ::= LBRACE expr RBRACE */
@@ -5459,7 +5460,7 @@ static YYACTIONTYPE yy_reduce(
    * = interpolation), so no wrapper node is needed. */
   yymsp[-2].minor.yy179 = yymsp[-1].minor.yy179;
 }
-#line 5463 "lp_parse.c"
+#line 5464 "lp_parse.c"
         break;
       case 280: /* xml_child ::= LBRACE select RBRACE */
 #line 1223 "lp_parse.y"
@@ -5469,14 +5470,14 @@ static YYACTIONTYPE yy_reduce(
    * as {...} like any other interpolation. */
   yymsp[-2].minor.yy179 = lp_make_subquery(ctx, yymsp[-1].minor.yy179);
 }
-#line 5473 "lp_parse.c"
+#line 5474 "lp_parse.c"
         break;
       case 281: /* xml_element ::= XML_LT xml_tag_name xml_attrs XML_SLASH_GT */
 #line 1231 "lp_parse.y"
 {
   yymsp[-3].minor.yy179 = lp_make_sqldeep_xml(ctx, &yymsp[-2].minor.yy0, yymsp[-1].minor.yy533, 0, 1);
 }
-#line 5480 "lp_parse.c"
+#line 5481 "lp_parse.c"
         break;
       case 282: /* xml_element ::= XML_LT xml_tag_name xml_attrs XML_GT xml_children XML_END_LT xml_tag_name XML_GT */
 #line 1235 "lp_parse.y"
@@ -5484,35 +5485,35 @@ static YYACTIONTYPE yy_reduce(
   lp_check_xml_close_tag(ctx, &yymsp[-6].minor.yy0, &yymsp[-1].minor.yy0);
   yymsp[-7].minor.yy179 = lp_make_sqldeep_xml(ctx, &yymsp[-6].minor.yy0, yymsp[-5].minor.yy533, yymsp[-3].minor.yy533, 0);
 }
-#line 5488 "lp_parse.c"
+#line 5489 "lp_parse.c"
         break;
       case 286: /* sqldeep_object_field ::= ID|INDEXED|JOIN_KW */
 #line 1250 "lp_parse.y"
 { yylhsminor.yy179 = lp_make_sqldeep_field_bare(ctx, &yymsp[0].minor.yy0); }
-#line 5493 "lp_parse.c"
+#line 5494 "lp_parse.c"
   yymsp[0].minor.yy179 = yylhsminor.yy179;
         break;
       case 287: /* sqldeep_object_field ::= ID|INDEXED|JOIN_KW COLON expr */
 #line 1251 "lp_parse.y"
 { yylhsminor.yy179 = lp_make_sqldeep_field_named(ctx, &yymsp[-2].minor.yy0, yymsp[0].minor.yy179); }
-#line 5499 "lp_parse.c"
+#line 5500 "lp_parse.c"
   yymsp[-2].minor.yy179 = yylhsminor.yy179;
         break;
       case 288: /* sqldeep_object_field ::= STRING COLON expr */
 #line 1252 "lp_parse.y"
 { yylhsminor.yy179 = lp_make_sqldeep_field_string(ctx, &yymsp[-2].minor.yy0, yymsp[0].minor.yy179); }
-#line 5505 "lp_parse.c"
+#line 5506 "lp_parse.c"
   yymsp[-2].minor.yy179 = yylhsminor.yy179;
         break;
       case 289: /* sqldeep_object_field ::= LP expr RP COLON expr */
 #line 1253 "lp_parse.y"
 { yymsp[-4].minor.yy179 = lp_make_sqldeep_field_computed(ctx, yymsp[-3].minor.yy179, yymsp[0].minor.yy179); }
-#line 5511 "lp_parse.c"
+#line 5512 "lp_parse.c"
         break;
       case 290: /* sqldeep_object_field ::= ID|INDEXED|JOIN_KW COLON STAR */
 #line 1254 "lp_parse.y"
 { yylhsminor.yy179 = lp_make_sqldeep_field_recursive(ctx, &yymsp[-2].minor.yy0); }
-#line 5516 "lp_parse.c"
+#line 5517 "lp_parse.c"
   yymsp[-2].minor.yy179 = yylhsminor.yy179;
         break;
       case 291: /* sqldeep_object_field ::= ID|INDEXED|JOIN_KW COLON select */
@@ -5521,7 +5522,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *val = lp_make_subquery(ctx, yymsp[0].minor.yy179);
   yylhsminor.yy179 = lp_make_sqldeep_field_named(ctx, &yymsp[-2].minor.yy0, val);
 }
-#line 5525 "lp_parse.c"
+#line 5526 "lp_parse.c"
   yymsp[-2].minor.yy179 = yylhsminor.yy179;
         break;
       case 292: /* sqldeep_object_field ::= STRING COLON select */
@@ -5530,7 +5531,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *val = lp_make_subquery(ctx, yymsp[0].minor.yy179);
   yylhsminor.yy179 = lp_make_sqldeep_field_string(ctx, &yymsp[-2].minor.yy0, val);
 }
-#line 5534 "lp_parse.c"
+#line 5535 "lp_parse.c"
   yymsp[-2].minor.yy179 = yylhsminor.yy179;
         break;
       case 293: /* sqldeep_object_field ::= LP expr RP COLON select */
@@ -5539,7 +5540,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *val = lp_make_subquery(ctx, yymsp[0].minor.yy179);
   yymsp[-4].minor.yy179 = lp_make_sqldeep_field_computed(ctx, yymsp[-3].minor.yy179, val);
 }
-#line 5543 "lp_parse.c"
+#line 5544 "lp_parse.c"
         break;
       case 294: /* sqldeep_object_field ::= ID|INDEXED|JOIN_KW DOT ID|INDEXED|JOIN_KW */
 #line 1276 "lp_parse.y"
@@ -5547,7 +5548,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *val = lp_make_column_ref2(ctx, &yymsp[-2].minor.yy0, &yymsp[0].minor.yy0);
   yylhsminor.yy179 = lp_make_sqldeep_field_qualified(ctx, &yymsp[0].minor.yy0, val);
 }
-#line 5551 "lp_parse.c"
+#line 5552 "lp_parse.c"
   yymsp[-2].minor.yy179 = yylhsminor.yy179;
         break;
       case 295: /* sqldeep_object_field ::= ID|INDEXED|JOIN_KW DOT ID|INDEXED|JOIN_KW DOT ID|INDEXED|JOIN_KW */
@@ -5556,7 +5557,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *val = lp_make_column_ref3(ctx, &yymsp[-4].minor.yy0, &yymsp[-2].minor.yy0, &yymsp[0].minor.yy0);
   yylhsminor.yy179 = lp_make_sqldeep_field_qualified(ctx, &yymsp[0].minor.yy0, val);
 }
-#line 5560 "lp_parse.c"
+#line 5561 "lp_parse.c"
   yymsp[-4].minor.yy179 = yylhsminor.yy179;
         break;
       case 296: /* cmd ::= createkw uniqueflag INDEX ifnotexists nm dbnm ON nm LP sortlist RP where_opt */
@@ -5564,7 +5565,7 @@ static YYACTIONTYPE yy_reduce(
 {
   ctx->result = lp_make_create_index(ctx, &yymsp[-7].minor.yy0, yymsp[-6].minor.yy0.n>0?&yymsp[-6].minor.yy0:0, &yymsp[-4].minor.yy0, yymsp[-2].minor.yy533, yymsp[-10].minor.yy436, yymsp[-8].minor.yy436, yymsp[0].minor.yy179);
 }
-#line 5568 "lp_parse.c"
+#line 5569 "lp_parse.c"
         break;
       case 301: /* eidlist ::= eidlist COMMA nm collate sortorder */
 #line 1302 "lp_parse.y"
@@ -5573,7 +5574,7 @@ static YYACTIONTYPE yy_reduce(
   (void)yymsp[-1].minor.yy436; (void)yymsp[0].minor.yy436;
   lp_list_append(ctx, yymsp[-4].minor.yy533, n);
 }
-#line 5577 "lp_parse.c"
+#line 5578 "lp_parse.c"
         break;
       case 302: /* eidlist ::= nm collate sortorder */
 #line 1307 "lp_parse.y"
@@ -5583,7 +5584,7 @@ static YYACTIONTYPE yy_reduce(
   (void)yymsp[-1].minor.yy436; (void)yymsp[0].minor.yy436;
   lp_list_append(ctx, yylhsminor.yy533, n);
 }
-#line 5587 "lp_parse.c"
+#line 5588 "lp_parse.c"
   yymsp[-2].minor.yy533 = yylhsminor.yy533;
         break;
       case 305: /* cmd ::= DROP INDEX ifexists fullname */
@@ -5591,42 +5592,42 @@ static YYACTIONTYPE yy_reduce(
 {
   ctx->result = lp_make_drop(ctx, LP_DROP_INDEX, &yymsp[0].minor.yy152.name, &yymsp[0].minor.yy152.schema, yymsp[-1].minor.yy436);
 }
-#line 5595 "lp_parse.c"
+#line 5596 "lp_parse.c"
         break;
       case 306: /* cmd ::= VACUUM vinto */
 #line 1327 "lp_parse.y"
 { ctx->result = lp_make_vacuum(ctx, 0, yymsp[0].minor.yy179); }
-#line 5600 "lp_parse.c"
+#line 5601 "lp_parse.c"
         break;
       case 307: /* cmd ::= VACUUM nm vinto */
 #line 1328 "lp_parse.y"
 { ctx->result = lp_make_vacuum(ctx, &yymsp[-1].minor.yy0, yymsp[0].minor.yy179); }
-#line 5605 "lp_parse.c"
+#line 5606 "lp_parse.c"
         break;
       case 310: /* cmd ::= PRAGMA nm dbnm */
 #line 1334 "lp_parse.y"
 { ctx->result = lp_make_pragma(ctx, &yymsp[-1].minor.yy0, yymsp[0].minor.yy0.n>0?&yymsp[0].minor.yy0:0, 0, 0); }
-#line 5610 "lp_parse.c"
+#line 5611 "lp_parse.c"
         break;
       case 311: /* cmd ::= PRAGMA nm dbnm EQ nmnum */
 #line 1335 "lp_parse.y"
 { ctx->result = lp_make_pragma(ctx, &yymsp[-3].minor.yy0, yymsp[-2].minor.yy0.n>0?&yymsp[-2].minor.yy0:0, &yymsp[0].minor.yy0, 0); }
-#line 5615 "lp_parse.c"
+#line 5616 "lp_parse.c"
         break;
       case 312: /* cmd ::= PRAGMA nm dbnm LP nmnum RP */
 #line 1336 "lp_parse.y"
 { ctx->result = lp_make_pragma(ctx, &yymsp[-4].minor.yy0, yymsp[-3].minor.yy0.n>0?&yymsp[-3].minor.yy0:0, &yymsp[-1].minor.yy0, 0); }
-#line 5620 "lp_parse.c"
+#line 5621 "lp_parse.c"
         break;
       case 313: /* cmd ::= PRAGMA nm dbnm EQ minus_num */
 #line 1338 "lp_parse.y"
 { ctx->result = lp_make_pragma(ctx, &yymsp[-3].minor.yy0, yymsp[-2].minor.yy0.n>0?&yymsp[-2].minor.yy0:0, &yymsp[0].minor.yy0, 1); }
-#line 5625 "lp_parse.c"
+#line 5626 "lp_parse.c"
         break;
       case 314: /* cmd ::= PRAGMA nm dbnm LP minus_num RP */
 #line 1340 "lp_parse.y"
 { ctx->result = lp_make_pragma(ctx, &yymsp[-4].minor.yy0, yymsp[-3].minor.yy0.n>0?&yymsp[-3].minor.yy0:0, &yymsp[-1].minor.yy0, 1); }
-#line 5630 "lp_parse.c"
+#line 5631 "lp_parse.c"
         break;
       case 317: /* cmd ::= createkw trigger_decl BEGIN trigger_cmd_list END */
 #line 1354 "lp_parse.y"
@@ -5634,7 +5635,7 @@ static YYACTIONTYPE yy_reduce(
   ctx->result = yymsp[-3].minor.yy179;
   if(yymsp[-3].minor.yy179) yymsp[-3].minor.yy179->u.create_trigger.body = *yymsp[-1].minor.yy533;
 }
-#line 5638 "lp_parse.c"
+#line 5639 "lp_parse.c"
         break;
       case 318: /* trigger_decl ::= temp TRIGGER ifnotexists nm dbnm trigger_time trigger_event ON fullname foreach_clause when_clause */
 #line 1362 "lp_parse.y"
@@ -5644,55 +5645,55 @@ static YYACTIONTYPE yy_reduce(
   yylhsminor.yy179 = lp_make_create_trigger(ctx, &yymsp[-7].minor.yy0, yymsp[-6].minor.yy0.n>0?&yymsp[-6].minor.yy0:0, yymsp[-10].minor.yy436, yymsp[-8].minor.yy436, yymsp[-5].minor.yy436, yymsp[-4].minor.yy592.event,
                               &yymsp[-2].minor.yy152.name, ucols, yymsp[0].minor.yy179, 0);
 }
-#line 5648 "lp_parse.c"
+#line 5649 "lp_parse.c"
   yymsp[-10].minor.yy179 = yylhsminor.yy179;
         break;
       case 319: /* trigger_time ::= BEFORE */
 #line 1370 "lp_parse.y"
 { yymsp[0].minor.yy436 = LP_TRIGGER_BEFORE; }
-#line 5654 "lp_parse.c"
+#line 5655 "lp_parse.c"
         break;
       case 320: /* trigger_time ::= AFTER */
 #line 1371 "lp_parse.y"
 { yymsp[0].minor.yy436 = LP_TRIGGER_AFTER; }
-#line 5659 "lp_parse.c"
+#line 5660 "lp_parse.c"
         break;
       case 321: /* trigger_time ::= INSTEAD OF */
 #line 1372 "lp_parse.y"
 { yymsp[-1].minor.yy436 = LP_TRIGGER_INSTEAD_OF; }
-#line 5664 "lp_parse.c"
+#line 5665 "lp_parse.c"
         break;
       case 322: /* trigger_time ::= */
 #line 1373 "lp_parse.y"
 { yymsp[1].minor.yy436 = LP_TRIGGER_BEFORE; }
-#line 5669 "lp_parse.c"
+#line 5670 "lp_parse.c"
         break;
       case 323: /* trigger_event ::= DELETE */
 #line 1376 "lp_parse.y"
 {yymsp[0].minor.yy592.event = LP_TRIGGER_DELETE; yymsp[0].minor.yy592.cols = 0;}
-#line 5674 "lp_parse.c"
+#line 5675 "lp_parse.c"
         break;
       case 324: /* trigger_event ::= INSERT */
 #line 1377 "lp_parse.y"
 {yymsp[0].minor.yy592.event = LP_TRIGGER_INSERT; yymsp[0].minor.yy592.cols = 0;}
-#line 5679 "lp_parse.c"
+#line 5680 "lp_parse.c"
         break;
       case 325: /* trigger_event ::= UPDATE */
 #line 1378 "lp_parse.y"
 {yymsp[0].minor.yy592.event = LP_TRIGGER_UPDATE; yymsp[0].minor.yy592.cols = 0;}
-#line 5684 "lp_parse.c"
+#line 5685 "lp_parse.c"
         break;
       case 326: /* trigger_event ::= UPDATE OF idlist */
 #line 1379 "lp_parse.y"
 {yymsp[-2].minor.yy592.event = LP_TRIGGER_UPDATE; yymsp[-2].minor.yy592.cols = yymsp[0].minor.yy533;}
-#line 5689 "lp_parse.c"
+#line 5690 "lp_parse.c"
         break;
       case 329: /* trigger_cmd_list ::= trigger_cmd_list trigger_cmd SEMI */
 #line 1389 "lp_parse.y"
 {
   lp_list_append(ctx, yymsp[-2].minor.yy533, yymsp[-1].minor.yy179);
 }
-#line 5696 "lp_parse.c"
+#line 5697 "lp_parse.c"
         break;
       case 330: /* trigger_cmd_list ::= trigger_cmd SEMI */
 #line 1392 "lp_parse.y"
@@ -5700,7 +5701,7 @@ static YYACTIONTYPE yy_reduce(
   yylhsminor.yy533 = (LpNodeList*)arena_zeroalloc(ctx->arena, sizeof(LpNodeList));
   lp_list_append(ctx, yylhsminor.yy533, yymsp[-1].minor.yy179);
 }
-#line 5704 "lp_parse.c"
+#line 5705 "lp_parse.c"
   yymsp[-1].minor.yy533 = yylhsminor.yy533;
         break;
       case 331: /* tridxby ::= INDEXED BY nm */
@@ -5708,7 +5709,7 @@ static YYACTIONTYPE yy_reduce(
 {
   lp_error(ctx, LP_ERR_SYNTAX, lp_token_end(&yymsp[0].minor.yy0), "%u:%u: INDEXED BY not allowed in triggers", yymsp[0].minor.yy0.pos.line, yymsp[0].minor.yy0.pos.col);
 }
-#line 5712 "lp_parse.c"
+#line 5713 "lp_parse.c"
         break;
       case 332: /* tridxby ::= NOT INDEXED */
 #line 1401 "lp_parse.y"
@@ -5716,7 +5717,7 @@ static YYACTIONTYPE yy_reduce(
   lp_error(ctx, LP_ERR_SYNTAX, ctx->cur_pos, "NOT INDEXED not allowed in triggers");
   /* no specific token to reference here */
 }
-#line 5720 "lp_parse.c"
+#line 5721 "lp_parse.c"
         break;
       case 333: /* trigger_cmd ::= UPDATE orconf xfullname tridxby SET setlist from where_opt scanpt */
 #line 1409 "lp_parse.y"
@@ -5726,7 +5727,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *upd = lp_make_update(ctx, yymsp[-7].minor.yy436, &yymsp[-6].minor.yy518.name, s, a, yymsp[-3].minor.yy533, yymsp[-2].minor.yy179, yymsp[-1].minor.yy179, 0, 0, 0);
   yymsp[-8].minor.yy179 = lp_make_trigger_cmd(ctx, upd);
 }
-#line 5730 "lp_parse.c"
+#line 5731 "lp_parse.c"
         break;
       case 334: /* trigger_cmd ::= scanpt insert_cmd INTO xfullname idlist_opt select upsert scanpt */
 #line 1417 "lp_parse.y"
@@ -5737,7 +5738,7 @@ static YYACTIONTYPE yy_reduce(
                                 (yymsp[-1].minor.yy179 && yymsp[-1].minor.yy179->kind==LP_UPSERT)?yymsp[-1].minor.yy179:0, 0);
   yymsp[-7].minor.yy179 = lp_make_trigger_cmd(ctx, ins);
 }
-#line 5741 "lp_parse.c"
+#line 5742 "lp_parse.c"
         break;
       case 335: /* trigger_cmd ::= DELETE FROM xfullname tridxby where_opt scanpt */
 #line 1425 "lp_parse.y"
@@ -5747,91 +5748,91 @@ static YYACTIONTYPE yy_reduce(
   LpNode *del = lp_make_delete(ctx, &yymsp[-3].minor.yy518.name, s, a, yymsp[-1].minor.yy179, 0, 0, 0);
   yymsp[-5].minor.yy179 = lp_make_trigger_cmd(ctx, del);
 }
-#line 5751 "lp_parse.c"
+#line 5752 "lp_parse.c"
         break;
       case 336: /* trigger_cmd ::= scanpt select scanpt */
 #line 1432 "lp_parse.y"
 {
   yymsp[-2].minor.yy179 = lp_make_trigger_cmd(ctx, yymsp[-1].minor.yy179);
 }
-#line 5758 "lp_parse.c"
+#line 5759 "lp_parse.c"
         break;
       case 337: /* expr ::= RAISE LP IGNORE RP */
 #line 1437 "lp_parse.y"
 {
   yymsp[-3].minor.yy179 = lp_make_raise(ctx, LP_RAISE_IGNORE, 0);
 }
-#line 5765 "lp_parse.c"
+#line 5766 "lp_parse.c"
         break;
       case 338: /* expr ::= RAISE LP raisetype COMMA expr RP */
 #line 1440 "lp_parse.y"
 {
   yymsp[-5].minor.yy179 = lp_make_raise(ctx, yymsp[-3].minor.yy436, yymsp[-1].minor.yy179);
 }
-#line 5772 "lp_parse.c"
+#line 5773 "lp_parse.c"
         break;
       case 339: /* raisetype ::= ROLLBACK */
 #line 1445 "lp_parse.y"
 {yymsp[0].minor.yy436 = LP_RAISE_ROLLBACK;}
-#line 5777 "lp_parse.c"
+#line 5778 "lp_parse.c"
         break;
       case 340: /* raisetype ::= ABORT */
 #line 1446 "lp_parse.y"
 {yymsp[0].minor.yy436 = LP_RAISE_ABORT;}
-#line 5782 "lp_parse.c"
+#line 5783 "lp_parse.c"
         break;
       case 341: /* raisetype ::= FAIL */
 #line 1447 "lp_parse.y"
 {yymsp[0].minor.yy436 = LP_RAISE_FAIL;}
-#line 5787 "lp_parse.c"
+#line 5788 "lp_parse.c"
         break;
       case 342: /* cmd ::= DROP TRIGGER ifexists fullname */
 #line 1451 "lp_parse.y"
 {
   ctx->result = lp_make_drop(ctx, LP_DROP_TRIGGER, &yymsp[0].minor.yy152.name, &yymsp[0].minor.yy152.schema, yymsp[-1].minor.yy436);
 }
-#line 5794 "lp_parse.c"
+#line 5795 "lp_parse.c"
         break;
       case 343: /* cmd ::= ATTACH database_kw_opt expr AS expr key_opt */
 #line 1457 "lp_parse.y"
 {
   ctx->result = lp_make_attach(ctx, yymsp[-3].minor.yy179, yymsp[-1].minor.yy179, yymsp[0].minor.yy179);
 }
-#line 5801 "lp_parse.c"
+#line 5802 "lp_parse.c"
         break;
       case 344: /* cmd ::= DETACH database_kw_opt expr */
 #line 1460 "lp_parse.y"
 {
   ctx->result = lp_make_detach(ctx, yymsp[0].minor.yy179);
 }
-#line 5808 "lp_parse.c"
+#line 5809 "lp_parse.c"
         break;
       case 347: /* cmd ::= REINDEX */
 #line 1473 "lp_parse.y"
 { ctx->result = lp_make_reindex(ctx, 0, 0); }
-#line 5813 "lp_parse.c"
+#line 5814 "lp_parse.c"
         break;
       case 348: /* cmd ::= REINDEX nm dbnm */
 #line 1474 "lp_parse.y"
 { ctx->result = lp_make_reindex(ctx, &yymsp[-1].minor.yy0, yymsp[0].minor.yy0.n>0?&yymsp[0].minor.yy0:0); }
-#line 5818 "lp_parse.c"
+#line 5819 "lp_parse.c"
         break;
       case 349: /* cmd ::= ANALYZE */
 #line 1478 "lp_parse.y"
 { ctx->result = lp_make_analyze(ctx, 0, 0); }
-#line 5823 "lp_parse.c"
+#line 5824 "lp_parse.c"
         break;
       case 350: /* cmd ::= ANALYZE nm dbnm */
 #line 1479 "lp_parse.y"
 { ctx->result = lp_make_analyze(ctx, &yymsp[-1].minor.yy0, yymsp[0].minor.yy0.n>0?&yymsp[0].minor.yy0:0); }
-#line 5828 "lp_parse.c"
+#line 5829 "lp_parse.c"
         break;
       case 351: /* cmd ::= ALTER TABLE fullname RENAME TO nm */
 #line 1483 "lp_parse.y"
 {
   ctx->result = lp_make_alter_rename(ctx, &yymsp[-3].minor.yy152.name, yymsp[-3].minor.yy152.schema.n>0?&yymsp[-3].minor.yy152.schema:0, &yymsp[0].minor.yy0);
 }
-#line 5835 "lp_parse.c"
+#line 5836 "lp_parse.c"
         break;
       case 352: /* cmd ::= ALTER TABLE fullname ADD kwcolumn_opt columnname carglist */
 #line 1486 "lp_parse.y"
@@ -5840,34 +5841,34 @@ static YYACTIONTYPE yy_reduce(
   ** We need to package it as an ALTER ADD COLUMN. */
   ctx->result = lp_make_alter_add_column(ctx, &yymsp[-4].minor.yy152.name, yymsp[-4].minor.yy152.schema.n>0?&yymsp[-4].minor.yy152.schema:0);
 }
-#line 5844 "lp_parse.c"
+#line 5845 "lp_parse.c"
         break;
       case 353: /* cmd ::= ALTER TABLE fullname DROP kwcolumn_opt nm */
 #line 1491 "lp_parse.y"
 {
   ctx->result = lp_make_alter_drop_column(ctx, &yymsp[-3].minor.yy152.name, yymsp[-3].minor.yy152.schema.n>0?&yymsp[-3].minor.yy152.schema:0, &yymsp[0].minor.yy0);
 }
-#line 5851 "lp_parse.c"
+#line 5852 "lp_parse.c"
         break;
       case 354: /* cmd ::= ALTER TABLE fullname RENAME kwcolumn_opt nm TO nm */
 #line 1494 "lp_parse.y"
 {
   ctx->result = lp_make_alter_rename_column(ctx, &yymsp[-5].minor.yy152.name, yymsp[-5].minor.yy152.schema.n>0?&yymsp[-5].minor.yy152.schema:0, &yymsp[-2].minor.yy0, &yymsp[0].minor.yy0);
 }
-#line 5858 "lp_parse.c"
+#line 5859 "lp_parse.c"
         break;
       case 355: /* cmd ::= create_vtab */
       case 356: /* cmd ::= create_vtab LP vtabarglist RP */ yytestcase(yyruleno==356);
 #line 1503 "lp_parse.y"
 { lp_end_create_table(ctx, 0); }
-#line 5864 "lp_parse.c"
+#line 5865 "lp_parse.c"
         break;
       case 357: /* create_vtab ::= createkw VIRTUAL TABLE ifnotexists nm dbnm USING nm */
 #line 1506 "lp_parse.y"
 {
   ctx->cur_table = lp_make_create_vtable(ctx, &yymsp[-3].minor.yy0, yymsp[-2].minor.yy0.n>0?&yymsp[-2].minor.yy0:0, &yymsp[0].minor.yy0, yymsp[-4].minor.yy436);
 }
-#line 5871 "lp_parse.c"
+#line 5872 "lp_parse.c"
         break;
       case 358: /* with ::= WITH wqlist */
 #line 1526 "lp_parse.y"
@@ -5875,7 +5876,7 @@ static YYACTIONTYPE yy_reduce(
   LpNode *w = lp_make_with(ctx, 0, yymsp[0].minor.yy533);
   (void)w; /* WITH is consumed when attached to select */
 }
-#line 5879 "lp_parse.c"
+#line 5880 "lp_parse.c"
         break;
       case 359: /* with ::= WITH RECURSIVE wqlist */
 #line 1530 "lp_parse.y"
@@ -5883,29 +5884,29 @@ static YYACTIONTYPE yy_reduce(
   LpNode *w = lp_make_with(ctx, 1, yymsp[0].minor.yy533);
   (void)w;
 }
-#line 5887 "lp_parse.c"
+#line 5888 "lp_parse.c"
         break;
       case 360: /* wqas ::= AS */
 #line 1536 "lp_parse.y"
 {yymsp[0].minor.yy436 = LP_MATERIALIZE_ANY;}
-#line 5892 "lp_parse.c"
+#line 5893 "lp_parse.c"
         break;
       case 361: /* wqas ::= AS MATERIALIZED */
 #line 1537 "lp_parse.y"
 {yymsp[-1].minor.yy436 = LP_MATERIALIZE_YES;}
-#line 5897 "lp_parse.c"
+#line 5898 "lp_parse.c"
         break;
       case 362: /* wqas ::= AS NOT MATERIALIZED */
 #line 1538 "lp_parse.y"
 {yymsp[-2].minor.yy436 = LP_MATERIALIZE_NO;}
-#line 5902 "lp_parse.c"
+#line 5903 "lp_parse.c"
         break;
       case 363: /* wqitem ::= withnm eidlist_opt wqas LP select RP */
 #line 1539 "lp_parse.y"
 {
   yylhsminor.yy179 = lp_make_cte(ctx, &yymsp[-5].minor.yy0, yymsp[-4].minor.yy533, yymsp[-1].minor.yy179, yymsp[-3].minor.yy436);
 }
-#line 5909 "lp_parse.c"
+#line 5910 "lp_parse.c"
   yymsp[-5].minor.yy179 = yylhsminor.yy179;
         break;
       case 368: /* windowdefn ::= nm AS LP window RP */
@@ -5917,7 +5918,7 @@ static YYACTIONTYPE yy_reduce(
   }
   yylhsminor.yy179 = yymsp[-1].minor.yy179;
 }
-#line 5921 "lp_parse.c"
+#line 5922 "lp_parse.c"
   yymsp[-4].minor.yy179 = yylhsminor.yy179;
         break;
       case 369: /* window ::= PARTITION BY nexprlist orderby_opt frame_opt */
@@ -5925,14 +5926,14 @@ static YYACTIONTYPE yy_reduce(
 {
   yymsp[-4].minor.yy179 = lp_make_window_def(ctx, 0, yymsp[-2].minor.yy533, yymsp[-1].minor.yy533, yymsp[0].minor.yy179, 0);
 }
-#line 5929 "lp_parse.c"
+#line 5930 "lp_parse.c"
         break;
       case 370: /* window ::= nm PARTITION BY nexprlist orderby_opt frame_opt */
 #line 1589 "lp_parse.y"
 {
   yylhsminor.yy179 = lp_make_window_def(ctx, 0, yymsp[-2].minor.yy533, yymsp[-1].minor.yy533, yymsp[0].minor.yy179, &yymsp[-5].minor.yy0);
 }
-#line 5936 "lp_parse.c"
+#line 5937 "lp_parse.c"
   yymsp[-5].minor.yy179 = yylhsminor.yy179;
         break;
       case 371: /* window ::= ORDER BY sortlist frame_opt */
@@ -5940,14 +5941,14 @@ static YYACTIONTYPE yy_reduce(
 {
   yymsp[-3].minor.yy179 = lp_make_window_def(ctx, 0, 0, yymsp[-1].minor.yy533, yymsp[0].minor.yy179, 0);
 }
-#line 5944 "lp_parse.c"
+#line 5945 "lp_parse.c"
         break;
       case 372: /* window ::= nm ORDER BY sortlist frame_opt */
 #line 1595 "lp_parse.y"
 {
   yylhsminor.yy179 = lp_make_window_def(ctx, 0, 0, yymsp[-1].minor.yy533, yymsp[0].minor.yy179, &yymsp[-4].minor.yy0);
 }
-#line 5951 "lp_parse.c"
+#line 5952 "lp_parse.c"
   yymsp[-4].minor.yy179 = yylhsminor.yy179;
         break;
       case 373: /* window ::= frame_opt */
@@ -5955,7 +5956,7 @@ static YYACTIONTYPE yy_reduce(
 {
   yylhsminor.yy179 = lp_make_window_def(ctx, 0, 0, 0, yymsp[0].minor.yy179, 0);
 }
-#line 5959 "lp_parse.c"
+#line 5960 "lp_parse.c"
   yymsp[0].minor.yy179 = yylhsminor.yy179;
         break;
       case 374: /* window ::= nm frame_opt */
@@ -5963,161 +5964,152 @@ static YYACTIONTYPE yy_reduce(
 {
   yylhsminor.yy179 = lp_make_window_def(ctx, 0, 0, 0, yymsp[0].minor.yy179, &yymsp[-1].minor.yy0);
 }
-#line 5967 "lp_parse.c"
+#line 5968 "lp_parse.c"
   yymsp[-1].minor.yy179 = yylhsminor.yy179;
         break;
-      case 375: /* frame_opt ::= */
-#line 1605 "lp_parse.y"
-{
-  LpNode *s = lp_make_frame_bound(ctx, LP_BOUND_UNBOUNDED_PRECEDING, 0);
-  LpNode *e = lp_make_frame_bound(ctx, LP_BOUND_CURRENT_ROW, 0);
-  yymsp[1].minor.yy179 = lp_make_window_frame(ctx, LP_FRAME_RANGE, s, e, LP_EXCLUDE_NONE);
-}
-#line 5977 "lp_parse.c"
-        break;
       case 376: /* frame_opt ::= range_or_rows frame_bound_s frame_exclude_opt */
-#line 1610 "lp_parse.y"
+#line 1608 "lp_parse.y"
 {
   LpNode *s = lp_make_frame_bound(ctx, yymsp[-1].minor.yy218.type, yymsp[-1].minor.yy218.expr);
   LpNode *e = lp_make_frame_bound(ctx, LP_BOUND_CURRENT_ROW, 0);
   yylhsminor.yy179 = lp_make_window_frame(ctx, yymsp[-2].minor.yy436, s, e, yymsp[0].minor.yy436);
 }
-#line 5986 "lp_parse.c"
+#line 5978 "lp_parse.c"
   yymsp[-2].minor.yy179 = yylhsminor.yy179;
         break;
       case 377: /* frame_opt ::= range_or_rows BETWEEN frame_bound_s AND frame_bound_e frame_exclude_opt */
-#line 1616 "lp_parse.y"
+#line 1614 "lp_parse.y"
 {
   LpNode *s = lp_make_frame_bound(ctx, yymsp[-3].minor.yy218.type, yymsp[-3].minor.yy218.expr);
   LpNode *e = lp_make_frame_bound(ctx, yymsp[-1].minor.yy218.type, yymsp[-1].minor.yy218.expr);
   yylhsminor.yy179 = lp_make_window_frame(ctx, yymsp[-5].minor.yy436, s, e, yymsp[0].minor.yy436);
 }
-#line 5996 "lp_parse.c"
+#line 5988 "lp_parse.c"
   yymsp[-5].minor.yy179 = yylhsminor.yy179;
         break;
       case 378: /* range_or_rows ::= RANGE */
-#line 1622 "lp_parse.y"
+#line 1620 "lp_parse.y"
 {yymsp[0].minor.yy436 = LP_FRAME_RANGE;}
-#line 6002 "lp_parse.c"
+#line 5994 "lp_parse.c"
         break;
       case 379: /* range_or_rows ::= ROWS */
-#line 1623 "lp_parse.y"
+#line 1621 "lp_parse.y"
 {yymsp[0].minor.yy436 = LP_FRAME_ROWS;}
-#line 6007 "lp_parse.c"
+#line 5999 "lp_parse.c"
         break;
       case 380: /* range_or_rows ::= GROUPS */
-#line 1624 "lp_parse.y"
+#line 1622 "lp_parse.y"
 {yymsp[0].minor.yy436 = LP_FRAME_GROUPS;}
-#line 6012 "lp_parse.c"
+#line 6004 "lp_parse.c"
         break;
       case 381: /* frame_bound_s ::= frame_bound */
       case 383: /* frame_bound_e ::= frame_bound */ yytestcase(yyruleno==383);
-#line 1626 "lp_parse.y"
+#line 1624 "lp_parse.y"
 {yylhsminor.yy218 = yymsp[0].minor.yy218;}
-#line 6018 "lp_parse.c"
+#line 6010 "lp_parse.c"
   yymsp[0].minor.yy218 = yylhsminor.yy218;
         break;
       case 382: /* frame_bound_s ::= UNBOUNDED PRECEDING */
-#line 1627 "lp_parse.y"
+#line 1625 "lp_parse.y"
 {yymsp[-1].minor.yy218.type = LP_BOUND_UNBOUNDED_PRECEDING; yymsp[-1].minor.yy218.expr = 0;}
-#line 6024 "lp_parse.c"
+#line 6016 "lp_parse.c"
         break;
       case 384: /* frame_bound_e ::= UNBOUNDED FOLLOWING */
-#line 1629 "lp_parse.y"
+#line 1627 "lp_parse.y"
 {yymsp[-1].minor.yy218.type = LP_BOUND_UNBOUNDED_FOLLOWING; yymsp[-1].minor.yy218.expr = 0;}
-#line 6029 "lp_parse.c"
+#line 6021 "lp_parse.c"
         break;
       case 385: /* frame_bound ::= expr PRECEDING */
-#line 1631 "lp_parse.y"
+#line 1629 "lp_parse.y"
 {yylhsminor.yy218.type = LP_BOUND_PRECEDING; yylhsminor.yy218.expr = yymsp[-1].minor.yy179;}
-#line 6034 "lp_parse.c"
+#line 6026 "lp_parse.c"
   yymsp[-1].minor.yy218 = yylhsminor.yy218;
         break;
       case 386: /* frame_bound ::= expr FOLLOWING */
-#line 1632 "lp_parse.y"
+#line 1630 "lp_parse.y"
 {yylhsminor.yy218.type = LP_BOUND_FOLLOWING; yylhsminor.yy218.expr = yymsp[-1].minor.yy179;}
-#line 6040 "lp_parse.c"
+#line 6032 "lp_parse.c"
   yymsp[-1].minor.yy218 = yylhsminor.yy218;
         break;
       case 387: /* frame_bound ::= CURRENT ROW */
-#line 1633 "lp_parse.y"
+#line 1631 "lp_parse.y"
 {yymsp[-1].minor.yy218.type = LP_BOUND_CURRENT_ROW; yymsp[-1].minor.yy218.expr = 0;}
-#line 6046 "lp_parse.c"
+#line 6038 "lp_parse.c"
         break;
       case 388: /* frame_exclude_opt ::= */
-#line 1636 "lp_parse.y"
+#line 1634 "lp_parse.y"
 {yymsp[1].minor.yy436 = LP_EXCLUDE_NONE;}
-#line 6051 "lp_parse.c"
+#line 6043 "lp_parse.c"
         break;
       case 390: /* frame_exclude ::= NO OTHERS */
-#line 1640 "lp_parse.y"
+#line 1638 "lp_parse.y"
 {yymsp[-1].minor.yy436 = LP_EXCLUDE_NO_OTHERS;}
-#line 6056 "lp_parse.c"
+#line 6048 "lp_parse.c"
         break;
       case 391: /* frame_exclude ::= CURRENT ROW */
-#line 1641 "lp_parse.y"
+#line 1639 "lp_parse.y"
 {yymsp[-1].minor.yy436 = LP_EXCLUDE_CURRENT_ROW;}
-#line 6061 "lp_parse.c"
+#line 6053 "lp_parse.c"
         break;
       case 392: /* frame_exclude ::= GROUP */
-#line 1642 "lp_parse.y"
+#line 1640 "lp_parse.y"
 {yymsp[0].minor.yy436 = LP_EXCLUDE_GROUP;}
-#line 6066 "lp_parse.c"
+#line 6058 "lp_parse.c"
         break;
       case 393: /* frame_exclude ::= TIES */
-#line 1643 "lp_parse.y"
+#line 1641 "lp_parse.y"
 {yymsp[0].minor.yy436 = LP_EXCLUDE_TIES;}
-#line 6071 "lp_parse.c"
+#line 6063 "lp_parse.c"
         break;
       case 395: /* filter_over ::= filter_clause over_clause */
-#line 1648 "lp_parse.y"
+#line 1646 "lp_parse.y"
 {
   yylhsminor.yy179 = yymsp[0].minor.yy179;
   ctx->pending_filter = yymsp[-1].minor.yy179;
 }
-#line 6079 "lp_parse.c"
+#line 6071 "lp_parse.c"
   yymsp[-1].minor.yy179 = yylhsminor.yy179;
         break;
       case 396: /* filter_over ::= over_clause */
-#line 1652 "lp_parse.y"
+#line 1650 "lp_parse.y"
 {
   ctx->pending_filter = 0;
 }
-#line 6087 "lp_parse.c"
+#line 6079 "lp_parse.c"
         break;
       case 397: /* filter_over ::= filter_clause */
-#line 1655 "lp_parse.y"
+#line 1653 "lp_parse.y"
 {
   yylhsminor.yy179 = 0;
   ctx->pending_filter = yymsp[0].minor.yy179;
 }
-#line 6095 "lp_parse.c"
+#line 6087 "lp_parse.c"
   yymsp[0].minor.yy179 = yylhsminor.yy179;
         break;
       case 398: /* over_clause ::= OVER LP window RP */
-#line 1660 "lp_parse.y"
+#line 1658 "lp_parse.y"
 { yymsp[-3].minor.yy179 = yymsp[-1].minor.yy179; }
-#line 6101 "lp_parse.c"
+#line 6093 "lp_parse.c"
         break;
       case 399: /* over_clause ::= OVER nm */
-#line 1661 "lp_parse.y"
+#line 1659 "lp_parse.y"
 {
   yymsp[-1].minor.yy179 = lp_make_window_ref(ctx, &yymsp[0].minor.yy0);
 }
-#line 6108 "lp_parse.c"
+#line 6100 "lp_parse.c"
         break;
       case 400: /* filter_clause ::= FILTER LP WHERE expr RP */
-#line 1665 "lp_parse.y"
+#line 1663 "lp_parse.y"
 { yymsp[-4].minor.yy179 = yymsp[-1].minor.yy179; }
-#line 6113 "lp_parse.c"
+#line 6105 "lp_parse.c"
         break;
       case 401: /* term ::= QNUMBER */
-#line 1687 "lp_parse.y"
+#line 1685 "lp_parse.y"
 {
   /* Quoted number - treat as regular number */
   yylhsminor.yy179 = lp_make_literal_int(ctx, &yymsp[0].minor.yy0);
 }
-#line 6121 "lp_parse.c"
+#line 6113 "lp_parse.c"
   yymsp[0].minor.yy179 = yylhsminor.yy179;
         break;
       default:
@@ -6261,7 +6253,7 @@ static void yy_syntax_error(
     lp_error(ctx, LP_ERR_INCOMPLETE, ctx->cur_pos, "%u:%u: incomplete input",
              ctx->cur_pos.line, ctx->cur_pos.col);
   }
-#line 6265 "lp_parse.c"
+#line 6257 "lp_parse.c"
 /************ End %syntax_error code ******************************************/
   lp_ParserARG_STORE /* Suppress warning about unused %extra_argument variable */
   lp_ParserCTX_STORE

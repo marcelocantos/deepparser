@@ -1602,11 +1602,9 @@ window(A) ::= nm(W) frame_opt(Z). {
   A = lp_make_window_def(ctx, 0, 0, 0, Z, &W);
 }
 
-frame_opt(A) ::= . {
-  LpNode *s = lp_make_frame_bound(ctx, LP_BOUND_UNBOUNDED_PRECEDING, 0);
-  LpNode *e = lp_make_frame_bound(ctx, LP_BOUND_CURRENT_ROW, 0);
-  A = lp_make_window_frame(ctx, LP_FRAME_RANGE, s, e, LP_EXCLUDE_NONE);
-}
+/* Empty frame is the SQL default — leave it unrepresented in the
+ * AST so the canonical unparser emits the shorter window form. */
+frame_opt(A) ::= . { A = 0; }
 frame_opt(A) ::= range_or_rows(X) frame_bound_s(Y) frame_exclude_opt(Z). {
   LpNode *s = lp_make_frame_bound(ctx, Y.type, Y.expr);
   LpNode *e = lp_make_frame_bound(ctx, LP_BOUND_CURRENT_ROW, 0);
