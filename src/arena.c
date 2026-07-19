@@ -13,7 +13,7 @@
 #include <assert.h>
 
 #ifndef ARENA_DEFAULT_ALIGN
-#define ARENA_DEFAULT_ALIGN (sizeof(max_align_t))
+#define ARENA_DEFAULT_ALIGN (_Alignof(max_align_t))
 #endif
 
 typedef struct arena_block_t {
