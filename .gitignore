@@ -7,3 +7,4 @@ sqlparse
 /fuzz/fuzz_parse_asan.dSYM
 fuzz/fuzz_parse
 fuzz/fuzz_parse_asan
+/lemon

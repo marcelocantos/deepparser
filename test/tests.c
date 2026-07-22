@@ -2118,14 +2118,12 @@ static void test_quoted_identifiers(void) {
     } else FAIL(err ? err : "fail");
 
     arena_reset(a);
-    TEST("Bracket-quoted identifier: [my col]");
+    TEST("Bracket-quoted identifier rejected (sqldeep claims [...] for arrays)");
     n = parse("SELECT [my col] FROM t", a, &err);
-    if (n && n->u.select.result_columns.count == 1) {
-        LpNode *e = n->u.select.result_columns.items[0]->u.result_column.expr;
-        if (e->kind == LP_EXPR_COLUMN_REF && strcmp(e->u.column_ref.column, "my col") == 0)
-            PASS();
-        else FAIL("bracket dequote wrong");
-    } else FAIL(err ? err : "fail");
+    /* Deepparser repurposes [...] as a sqldeep array literal, so SQLite's
+     * bracket-quoted identifier syntax is intentionally unsupported. The
+     * parse should fail; use "my col" or `my col` instead. */
+    if (!n) PASS(); else FAIL("expected parse failure, but parsed");
 
     arena_reset(a);
     TEST("String with escaped quote: 'it''s'");
@@ -3840,6 +3838,149 @@ static void test_round_trip(void) {
         "INSERT INTO t(a, b) SELECT x, y FROM s WHERE z > 0 ORDER BY x LIMIT 100",
         "SELECT (SELECT MAX(x) FROM t2 WHERE t2.grp = t1.grp) FROM t1",
         "SELECT COALESCE(a, b, c, 0), NULLIF(x, 0) FROM t",
+
+        /* sqldeep extensions: object/array literals */
+        "SELECT {a, b, c} FROM t",
+        "SELECT {a} FROM t",
+        "SELECT {} FROM t",
+        "SELECT [1, 2, 3] FROM t",
+        "SELECT [x] FROM t",
+        "SELECT [] FROM t",
+        "SELECT {x, y} FROM t WHERE id = 1",
+        "SELECT * FROM t WHERE {a, b} IS NOT NULL",
+        "SELECT [a, b, c] AS arr FROM t",
+        "SELECT [{x, y}, {x, y}] FROM t",
+
+        /* sqldeep object field forms: named, string-key, computed-key */
+        "SELECT {a: 1} FROM t",
+        "SELECT {a: x, b: y + 1} FROM t",
+        "SELECT {id, name: full_name, age: years} FROM t",
+        "SELECT {\"order id\": id, total: amount} FROM t",
+        "SELECT {(upper(prefix)): value} FROM t",
+        "SELECT {nested: {x, y}} FROM t",
+        "SELECT {arr: [1, 2, 3]} FROM t",
+
+        /* :name parameters still work (not stolen by COLON) */
+        "SELECT * FROM t WHERE id = :id",
+        "INSERT INTO t(a, b) VALUES(:a, :b)",
+
+        /* SELECT/1 singular modifier */
+        "SELECT/1 {a, b} FROM t",
+        "SELECT/1 [x] FROM t",
+        "SELECT/1 id FROM t WHERE id = 1",
+        "SELECT/1 {id, name: full_name} FROM users WHERE id = :id",
+
+        /* FROM-first variant — all filter/sort/limit clauses come
+         * before SELECT (sqldeep's canonical order). */
+        "FROM t SELECT {a, b}",
+        "FROM users WHERE id = :id SELECT {id, name: full_name}",
+        "FROM t SELECT [x, y]",
+        "FROM t WHERE id = 1 SELECT/1 {a, b}",
+        "FROM t1 INNER JOIN t2 ON t1.id = t2.ref SELECT {a: t1.x, b: t2.y}",
+        "FROM users WHERE active = 1 ORDER BY name LIMIT 10 SELECT *",
+
+        /* Join arrows: forward, reverse, chain, bridge */
+        "FROM c->orders o SELECT {a, b}",
+        "FROM o<-customers c SELECT {a, b}",
+        "FROM c->orders o->items i SELECT {a: c.id, b: i.qty}",
+        "FROM c->custacct<-accounts a SELECT {id, type}",
+        "SELECT {a, b} FROM c->orders o",
+
+        /* ON / USING shorthand on join arrows */
+        "FROM c->orders o ON id = cust_id SELECT {a, b}",
+        "FROM c->orders o USING (person_id) SELECT {a, b}",
+        "FROM c->orders o ON id = cust_id->items i ON oid = order_ref SELECT {x}",
+
+        /* :ident parameter still works after join-arrow tokenizer change */
+        "SELECT * FROM t WHERE id = :customer_id",
+
+        /* JSON path: (expr).field[N].sub */
+        "SELECT (data).name FROM t",
+        "SELECT (data).items[0] FROM t",
+        "SELECT (data).items[0].name FROM t",
+        "SELECT (data).a.b.c FROM t",
+        "SELECT upper((data).name) FROM t",
+        "SELECT * FROM t WHERE (data).status = 'active'",
+        "SELECT (data).count[0] + 1 FROM t",
+
+        /* RECURSE + recursive children field */
+        "SELECT/1 {id, name, children: *} FROM t RECURSE ON (parent_id) WHERE parent_id IS NULL",
+        "SELECT {id, name, children: *} FROM t RECURSE ON (parent_id)",
+        "SELECT/1 {id, kids: *} FROM nodes RECURSE ON (parent_id = id) WHERE parent_id IS NULL",
+        "SELECT {a, b, sub: *} FROM t RECURSE ON (fk)",
+
+        /* XML element literals — static, self-closing, nested, namespaced */
+        "SELECT <div/> FROM t",
+        "SELECT <div></div> FROM t",
+        "SELECT <div>hello</div> FROM t",
+        "SELECT <br/> FROM t",
+        "SELECT <input disabled/> FROM t",
+        "SELECT <a href=\"/x\">click</a> FROM t",
+        "SELECT <div class=\"card\" id=\"top\">x</div> FROM t",
+        "SELECT <ui:Table.Cell>x</ui:Table.Cell> FROM t",
+        "SELECT <div><span>x</span></div> FROM t",
+        "SELECT <ol><li>a</li><li>b</li></ol> FROM t",
+
+        /* XML interpolation */
+        "SELECT <div>{name}</div> FROM t",
+        "SELECT <a href={url}>click</a> FROM t",
+        "SELECT <div class={cls}>{body}</div> FROM t",
+        "SELECT <span>before {x} after</span> FROM t",
+
+        /* XML interpolation with SQL constructs inside */
+        "SELECT <td>{name + 1}</td> FROM t",
+        "SELECT <span>{upper(name)}</span> FROM t",
+        "SELECT <li>{(data).field}</li> FROM t",
+        "SELECT <td>{{name, qty}}</td> FROM t",
+        "SELECT <ul>{SELECT <li>{name}</li> FROM t} list</ul> FROM t",
+        "SELECT <p>{SELECT/1 <span>{x}</span> FROM t}</p> FROM t",
+
+        /* XML inside JSON object value */
+        "SELECT {card: <div>{name}</div>} FROM t",
+        "SELECT {label: <span class=\"hi\">x</span>} FROM t",
+
+        /* jsonml / jsx wrappers (function-call form) */
+        "SELECT jsonml(<div class=\"card\">{name}</div>) FROM t",
+        "SELECT jsx(<Graph data={{x, y}} label=\"Sales\"/>) FROM t",
+        "SELECT jsx(<ul>{SELECT <li>{name}</li> FROM t}</ul>) FROM t",
+
+        /* Comparison operators still tokenize as binary LT — XML
+         * promotion is suppressed when the previous token completes
+         * an expression. */
+        "SELECT 1 FROM t WHERE n < a",
+        "SELECT 1 FROM t WHERE x.col < other_col",
+        "SELECT count(*) FROM t WHERE id < limit_val",
+
+        /* Qualified bare field: key is the last component */
+        "SELECT {id, sm.repo, sm.topic} FROM t",
+        "SELECT {s.t.col} FROM t",
+        "SELECT {id, sm.repo, label: sm.topic} FROM t",
+
+        /* Trailing commas in object / array literals */
+        "SELECT {id, name,} FROM t",
+        "SELECT {tags: [1, 2, 3,]} FROM t",
+
+        /* Backslash-escaped quote inside double-quoted key */
+        "SELECT {\"say \\\"hello\\\"\": v} FROM t",
+
+        /* Bare SELECT / FROM-first as object field value (no parens) */
+        "SELECT {id, address: SELECT {street, city} FROM addresses WHERE uid = u.id} FROM users u",
+        "SELECT {id, totals: SELECT [total] FROM orders WHERE cid = c.id} FROM customer",
+        "SELECT {id, name, orders: FROM orders o WHERE o.cid = c.id SELECT {total}} FROM customers c",
+        "SELECT {orders: SELECT {orders_id} FROM c->orders} FROM customers c",
+        "SELECT {a: SELECT {x} FROM t1, b: SELECT {y} FROM t2} FROM t",
+
+        /* FROM-first with WHERE/ORDER BY/LIMIT BEFORE SELECT (sqldeep canonical order) */
+        "FROM t WHERE x > 0 SELECT {id}",
+        "FROM t ORDER BY id SELECT {id, name}",
+        "FROM orders WHERE cid = 1 SELECT [total]",
+        "FROM t WHERE x > 0 ORDER BY y LIMIT 10 SELECT *",
+        "FROM t WHERE x > 0 ORDER BY y SELECT id, name",
+
+        /* JSON path starting with [N] (no leading .name segment) */
+        "SELECT (data)[0] FROM t",
+        "SELECT (data)[0].name FROM t",
+        "SELECT (items)[0][1] FROM t",
     };
     int n = (int)(sizeof(sqls) / sizeof(sqls[0]));
 
